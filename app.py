@@ -7,6 +7,9 @@ def main():
 
     config_df = cargar_configuracion()
 
+    # 🔴 FILTRO: solo incluir Lengua y Literatura
+    config_df = config_df[config_df["Asignatura"] == "Lengua y Literatura"]
+
     # Crear etiquetas compuestas
     config_df["Etiqueta"] = config_df["Icono"] + " " + config_df["Asignatura"] + " (" + config_df["Curso"] + ")"
 
