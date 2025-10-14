@@ -66,10 +66,17 @@ def ejecutar_app(ruta_excel, nombre_materia, curso, icono):
     if mostrar_do: tipos_filtrados.append("DO")
 
     codigos_filtrados = codigos_df[codigos_df["Tipo"].isin(tipos_filtrados)]
+    # antes:
+    # seleccionados_etiqueta = st.multiselect("Selecciona los códigos:", options=codigos_filtrados["Etiqueta"].tolist())
+
+    # después (usa una key única por materia/curso):
+    ms_key = f"ms_codigos_{st.session_state.get('sel_id','default')}"
     seleccionados_etiqueta = st.multiselect(
         "Selecciona los códigos:",
-        options=codigos_filtrados["Etiqueta"].tolist()
+        options=codigos_filtrados["Etiqueta"].tolist(),
+        key=ms_key
     )
+
     seleccionados = [et.split(" | ")[1] for et in seleccionados_etiqueta]
 
     if seleccionados:
