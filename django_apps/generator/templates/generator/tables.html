@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="tables-shell">
+  <div class="tables-layout">
+
+    <!-- LEFT COLUMN: controls + results (scroll independiente) -->
+    <div class="tables-left">
+
+      <div class="card panel-section">
+        <div class="card-header">
+          <div>
+            <h1 class="h1">Relaciones curriculares</h1>
+            <p class="p-muted">
+              Elige asignatura, busca códigos y genera las tablas en vivo.
+            </p>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <form id="tables-form"
+              hx-post="{% url 'generator:tables_render' %}"
+              hx-target="#tables-dynamic"
+              hx-swap="innerHTML"
+              hx-trigger="change from:select">
+
+          {% csrf_token %}
+
+          <div class="stack">
+
+            <div class="field">
+              <label>Asignatura</label>
+              <select name="subject_id">
+                <option value="">-- Selecciona --</option>
+                {% for s in subjects %}
+                  <option value="{{ s.id }}"
+                    {% if selected_subject and selected_subject.id == s.id %}selected{% endif %}>
+                    {{ s.name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="help">
+                Selecciona asignatura para habilitar la búsqueda.
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Buscar código</label>
+              <input class="input"
+                     type="text"
+                     name="q"
+                     placeholder="Ej: A. / GEH.1.A. / 1.1..."
+                     autocomplete="off"
+                     hx-post="{% url 'generator:tables_search' %}"
+                     hx-target="#code-results"
+                     hx-swap="innerHTML"
+                     hx-trigger="keyup changed delay:200ms"
+                     hx-include="#tables-form">
+              <div class="help">
+                Pulsa en un resultado para añadir/quitar (toggle).
+              </div>
+            </div>
+
+            <div class="row">
+              <button class="btn btn-primary"
+                      type="submit"
+                      formaction="{% url 'generator:tables_export' %}"
+                      formmethod="post">
+                Descargar Excel
+              </button>
+              <a class="btn btn-ghost"
+                 href="{% url 'generator:my_exports' %}">
+                Ver exportaciones
+              </a>
+            </div>
+
+          </div>
+
+          <!-- hidden selected inputs -->
+          <div id="selected-codes" style="display:none;"></div>
+
+        </form>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="results-box panel-section">
+        <div class="card-header">
+          <div>
+            <div class="h2" style="margin:0;">Resultados</div>
+            <div class="small-muted">SSBB / CE / CEv / DO</div>
+          </div>
+        </div>
+
+        <div id="code-results">
+          <p class="p-muted">Escribe para buscar códigos.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: generated tables (scroll independiente) -->
+    <div class="tables-right">
+      <div id="tables-dynamic">
+        {% include "generator/_tables_tables.html" %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- HTMX watchers (NO TOCAR) -->
+<div hx-post="{% url 'generator:tables_search' %}"
+     hx-include="#tables-form"
+     hx-target="#code-results"
+     hx-swap="innerHTML"
+     hx-trigger="codesChanged from:body">
+</div>
+
+<div hx-post="{% url 'generator:tables_render' %}"
+     hx-include="#tables-form"
+     hx-target="#tables-dynamic"
+     hx-swap="innerHTML"
+     hx-trigger="codesChanged from:body">
+</div>
+
+{% endblock %}

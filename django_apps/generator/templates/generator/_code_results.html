@@ -1,0 +1,79 @@
+{# templates/generator/_code_results.html #}
+
+{% if not has_subject %}
+  <p>Selecciona una asignatura para buscar códigos.</p>
+
+{% elif not q %}
+  <p>Escribe para buscar (ej: <code>A.</code>).</p>
+
+{% else %}
+
+  <div class="type-grid">
+
+    {% if groups_cols.SSBB %}
+      <div class="type-block type-ssbb">
+        <div class="type-header">SSBB</div>
+        <div class="type-cols">
+          {% for col_items in groups_cols.SSBB %}
+            <div class="type-col">
+              {% for r in col_items %}
+                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-ssbb" %}
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if groups_cols.CE %}
+      <div class="type-block type-ce">
+        <div class="type-header">CE</div>
+        <div class="type-cols">
+          {% for col_items in groups_cols.CE %}
+            <div class="type-col">
+              {% for r in col_items %}
+                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-ce" %}
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if groups_cols.CEv %}
+      <div class="type-block type-cev">
+        <div class="type-header">CEv</div>
+        <div class="type-cols">
+          {% for col_items in groups_cols.CEv %}
+            <div class="type-col">
+              {% for r in col_items %}
+                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-cev" %}
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if groups_cols.DO %}
+      <div class="type-block type-do">
+        <div class="type-header">DO</div>
+        <div class="type-cols">
+          {% for col_items in groups_cols.DO %}
+            <div class="type-col">
+              {% for r in col_items %}
+                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-do" %}
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+
+  {% if not groups_cols.SSBB and not groups_cols.CE and not groups_cols.CEv and not groups_cols.DO %}
+    <p>No hay resultados.</p>
+  {% endif %}
+
+{% endif %}

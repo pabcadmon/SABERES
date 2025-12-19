@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "saberes-multi"
+version = "0.1.0"
+description = "Generador de relaciones curriculares"
+requires-python = ">=3.10"
+dependencies = [
+  "pandas",
+  "openpyxl",
+  "streamlit",
+]
+
+[tool.setuptools]
+packages = ["core", "core.engine", "ui_streamlit"]

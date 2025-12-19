@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Exportar Excel</h1>
+
+  {% if error_message %}
+    <p style="color:red;"><strong>Error:</strong> {{ error_message }}</p>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    <label>Asignatura:</label>
+    <select name="subject_code">
+      {% for s in subjects %}
+        <option value="{{ s.code }}"
+          {% if selected_subject_code == s.code %}selected{% endif %}
+        >
+          {{ s.code }} - {{ s.name }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <br /><br />
+
+    <label>Códigos:</label><br />
+    <textarea name="codes" rows="6" cols="60" placeholder="CE1, A.1, 1.2">{% if codes_raw %}{{ codes_raw }}{% endif %}</textarea>
+
+    <br /><br />
+
+    <button type="submit">Generar</button>
+  </form>
+{% endblock %}

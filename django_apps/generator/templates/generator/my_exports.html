@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h1 class="h1">Mis exportaciones</h1>
+        <p class="p-muted">Histórico de Excel generados (opcional en el flujo principal).</p>
+      </div>
+      <div class="row">
+        <a class="btn btn-ghost" href="{% url 'generator:tables' %}">Volver a Generar tablas</a>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <form method="get" class="form-row">
+      <div class="field">
+        <label>Asignatura</label>
+        <select name="subject">
+          <option value="">(todas)</option>
+          {% for s in subjects %}
+            <option value="{{ s.code }}" {% if selected_subject == s.code %}selected{% endif %}>
+              {{ s.code }} - {{ s.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Estado</label>
+        <select name="status">
+          <option value="">(todos)</option>
+          <option value="SUCCESS" {% if selected_status == "SUCCESS" %}selected{% endif %}>SUCCESS</option>
+          <option value="FAILED" {% if selected_status == "FAILED" %}selected{% endif %}>FAILED</option>
+        </select>
+      </div>
+
+      <div class="field" style="min-width: 140px;">
+        <button class="btn btn-primary" type="submit">Filtrar</button>
+      </div>
+    </form>
+  </div>
+
+  {% if page_obj.object_list %}
+    <div class="table-card">
+      <div class="card-header">
+        <h3>Listado</h3>
+        <small class="small-muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</small>
+      </div>
+
+      <div class="table-scroll">
+        <table class="nice-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Asignatura</th>
+              <th>Estado</th>
+              <th>Códigos</th>
+              <th>Error</th>
+              <th>Descarga</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for job in page_obj %}
+              <tr>
+                <td>{{ job.created_at|date:"Y-m-d H:i" }}</td>
+                <td>{{ job.subject.name }}</td>
+                <td>
+                  {% if job.status == "SUCCESS" %}
+                    <span class="badge success">SUCCESS</span>
+                  {% elif job.status == "FAILED" %}
+                    <span class="badge failed">FAILED</span>
+                  {% else %}
+                    <span class="badge">{{ job.status }}</span>
+                  {% endif %}
+                </td>
+                <td><pre style="margin:0; white-space:pre-wrap;">{{ job.codes_raw }}</pre></td>
+                <td>{{ job.error_message }}</td>
+                <td>
+                  {% if job.status == "SUCCESS" and job.output_file %}
+                    <a class="btn btn-small" href="{% url 'generator:download_export' job.id %}">Descargar</a>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="row">
+        {% if page_obj.has_previous %}
+          <a class="btn btn-ghost btn-small"
+             href="?page={{ page_obj.previous_page_number }}{% if selected_subject %}&subject={{ selected_subject }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+            ← Anterior
+          </a>
+        {% endif %}
+
+        <span class="small-muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+          <a class="btn btn-ghost btn-small"
+             href="?page={{ page_obj.next_page_number }}{% if selected_subject %}&subject={{ selected_subject }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">
+            Siguiente →
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    <div class="card">
+      <h2 class="h2">Sin exportaciones</h2>
+      <p class="p-muted">No has hecho ninguna exportación todavía.</p>
+      <div class="row">
+        <a class="btn btn-primary" href="{% url 'generator:tables' %}">Generar tablas</a>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

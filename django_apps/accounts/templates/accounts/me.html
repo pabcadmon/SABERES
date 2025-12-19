@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h1 class="h1">Mi cuenta</h1>
+        <p class="p-muted">Sesión iniciada como <strong>{{ user.username }}</strong>.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2 class="h2">Asignaturas con acceso</h2>
+
+    {% if accesses %}
+      <div class="stack">
+        {% for a in accesses %}
+          <div class="card" style="box-shadow:none;">
+            <div style="font-weight:800;">{{ a.subject.code }}</div>
+            <div class="p-muted">{{ a.subject.name }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="p-muted">— (ninguna)</p>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{# templates/generator/_selected_codes.html #}
+
+{% for code in selected_codes %}
+  <input type="hidden" name="codes" value="{{ code }}">
+{% endfor %}
+
+{# refrescar tablas #}
+<div hx-post="{% url 'generator:tables_render' %}"
+     hx-include="#tables-form"
+     hx-target="#tables-tables"
+     hx-swap="innerHTML"
+     hx-trigger="load"></div>
+
+{# refrescar resultados de búsqueda (para marcar is-selected) #}
+<div hx-post="{% url 'generator:tables_search' %}"
+     hx-include="#tables-form"
+     hx-target="#code-results"
+     hx-swap="innerHTML"
+     hx-trigger="load"></div>

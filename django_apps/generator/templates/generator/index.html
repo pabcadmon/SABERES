@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Relaciones curriculares</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { font-family: system-ui, Arial; max-width: 900px; margin: 40px auto; padding: 0 16px; }
+      textarea, input { width: 100%; padding: 10px; font-size: 16px; }
+      textarea { height: 140px; }
+      button { padding: 10px 14px; font-size: 16px; cursor: pointer; }
+      .row { margin-bottom: 14px; }
+      code { background: #f4f4f4; padding: 2px 6px; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>Relaciones curriculares</h1>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="row">
+        <label>Ruta del Excel (input)</label>
+        <input name="excel_path" value="{{ default_excel }}" />
+      </div>
+
+      <div class="row">
+        <label>Códigos (separados por coma, espacio o salto de línea)</label>
+        <textarea name="codes" placeholder="Ej: CE1, A.1, 1.2"></textarea>
+      </div>
+
+      <button type="submit">Generar y descargar Excel</button>
+    </form>
+
+    <p style="margin-top: 18px;">
+      Nota: aquí estamos probando el flujo Django → motor → descarga. Luego lo haremos con selección guiada y login.
+    </p>
+  </body>
+</html>

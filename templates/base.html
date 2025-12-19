@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  {% load static %}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Saberes{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+
+<body class="page">
+
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a class="navbrand" href="{% url 'home' %}">Saberes Multi</a>
+
+      <nav class="navlinks">
+        <a href="{% url 'generator:tables' %}">Generar tablas</a>
+        <a href="{% url 'generator:my_exports' %}">Mis exportaciones</a>
+      </nav>
+
+      <div class="nav-user">
+        {% if user.is_authenticated %}
+          <span class="username">Hola, {{ user.username }}</span>
+          <a href="{% url 'accounts:me' %}">Mi cuenta</a>
+
+          <form method="post" action="{% url 'logout' %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn btn-small btn-ghost" type="submit">Logout</button>
+          </form>
+        {% else %}
+          <a class="btn btn-small btn-primary" href="{% url 'login' %}">Login</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script>
+    document.body.addEventListener('htmx:configRequest', function (event) {
+      var match = document.cookie.match(/csrftoken=([^;]+)/);
+      if (match) {
+        event.detail.headers["X-CSRFToken"] = match[1];
+      }
+    });
+  </script>
+
+</body>
+</html>

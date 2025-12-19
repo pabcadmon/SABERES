@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h1 class="h1">Saberes Multi</h1>
+        <p class="p-muted">
+          Explora y genera de forma interactiva tablas de relaciones curriculares
+          entre saberes básicos, competencias, criterios y descriptores.
+        </p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    {% if user.is_authenticated %}
+      <p style="margin:0 0 12px 0;">
+        Hola <strong>{{ user.username }}</strong>. ¿Qué quieres hacer?
+      </p>
+
+      <div class="row">
+        <a class="btn btn-primary" href="{% url 'generator:tables' %}">📊 Generar tablas</a>
+        <a class="btn" href="{% url 'generator:my_exports' %}">🗂️ Mis exportaciones</a>
+        <a class="btn btn-ghost" href="{% url 'accounts:me' %}">👤 Mi cuenta</a>
+      </div>
+    {% else %}
+      <p style="margin:0 0 12px 0;">
+        Para generar tablas curriculares, inicia sesión.
+      </p>
+      <a class="btn btn-primary" href="{% url 'login' %}">🔐 Login</a>
+    {% endif %}
+  </div>
+{% endblock %}

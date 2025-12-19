@@ -1,0 +1,44 @@
+{# templates/generator/_tables_render.html #}
+
+<p style="font-size:12px;opacity:.7;">
+  DEBUG has_subject={{ has_subject }} | selected_codes={{ selected_codes|length }}
+</p>
+
+{% if options %}
+  <select name="codes" multiple size="12">
+    {% for opt in options %}
+      <option value="{{ opt.value }}"
+        {% if selected_codes and opt.value in selected_codes %}selected{% endif %}>
+        {{ opt.label }}
+      </option>
+    {% endfor %}
+  </select>
+{% else %}
+  <select name="codes" multiple size="12"></select>
+{% endif %}
+
+<hr>
+
+{% if not has_subject %}
+  <p>Selecciona una asignatura para cargar los códigos.</p>
+
+{% elif not has_selection %}
+  <p>Selecciona uno o más códigos para ver las tablas.</p>
+
+{% elif table1 and table2 and table3 %}
+  <p style="font-size:12px;opacity:.7;">DEBUG tablas: OK</p>
+
+  <h2>Relaciones por tipo</h2>
+  {% include "generator/_df_table.html" with t=table1 %}
+
+  <h2>Saberes Básicos relacionados</h2>
+  {% include "generator/_df_table.html" with t=table2 %}
+
+  <h2>Descripciones de elementos mostrados</h2>
+  {% include "generator/_df_table.html" with t=table3 %}
+
+{% else %}
+  <div style="padding:10px;border:1px solid #f99;background:#fee;">
+    No se han podido generar las tablas (table1/table2/table3 vacías).
+  </div>
+{% endif %}

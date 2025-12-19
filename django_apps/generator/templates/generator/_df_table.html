@@ -1,0 +1,18 @@
+<table>
+  <thead>
+    <tr>
+      {% for h in t.headers %}<th>{{ h }}</th>{% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in t.rows %}
+      <tr>
+        {% for cell in r %}
+          <td>
+            {{ cell|linebreaksbr }}
+          </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

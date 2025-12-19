@@ -1,0 +1,78 @@
+{% if error %}
+  <div class="table-card">
+    <h3>Error</h3>
+    <pre>{{ error }}</pre>
+  </div>
+{% endif %}
+
+{% if table1 %}
+  <div class="table-card">
+    <h3>Relaciones por tipo</h3>
+    <div class="table-scroll">
+      <table class="nice-table">
+        <thead>
+          <tr>
+            {% for h in table1.headers %}<th>{{ h }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in table1.rows %}
+            <tr>
+              {% for cell in row %}
+                <td>{{ cell|safe }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+{% if table2 %}
+  <div class="table-card">
+    <h3>Saberes básicos relacionados</h3>
+    <div class="table-scroll">
+      <table class="nice-table">
+        <thead>
+          <tr>
+            {% for h in table2.headers %}<th>{{ h }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in table2.rows %}
+            <tr>
+              {% for cell in row %}
+                <td>{{ cell|safe }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+{% if table3 %}
+  <div class="table-card">
+    <h3>Descripciones de elementos mostrados</h3>
+    <div class="table-scroll">
+      <table class="nice-table">
+        <thead>
+          <tr>
+            {% for h in table3.headers %}<th>{{ h }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in table3.rows %}
+            <tr>
+              {% for cell in row %}
+                <td>{{ cell|safe }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
