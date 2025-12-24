@@ -124,4 +124,11 @@
      hx-trigger="codesChanged from:body">
 </div>
 
+<div hx-post="{% url 'generator:tables_search' %}"
+     hx-include="#tables-form"
+     hx-target="#code-results"
+     hx-swap="innerHTML"
+     hx-trigger="change from:select[name='subject_id']">
+</div>
+
 {% endblock %}

@@ -265,17 +265,6 @@ select{ max-width: 420px; }
 .type-col{ width: max-content; }
 
 /* ====== Code pill (clickable) ====== */
-.code-pill{
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  margin-bottom: 8px;
-  cursor: pointer;
-  background: white;
-}
 .code-pill:hover{ filter: brightness(0.98); }
 .code-pill.is-selected{
   color: white;
@@ -394,12 +383,23 @@ select{ max-width: 420px; }
 }
 
 .code-pill{
-  font-size: 13px;          /* antes implícito ~14-16 */
-  padding: 7px 9px;         /* un pelín más compacto */
+  display: flex;
+  align-items: center;        /* centra vertical */
+  justify-content: center;    /* centra horizontal */
+  width: 100%;
+  text-align: center;
+
+  padding: 7px 9px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+
+  font-size: 13px;
   line-height: 1.2;
-  white-space: normal;      /* permite salto de línea */
-  overflow-wrap: anywhere;  /* parte tokens largos si hace falta */
-  word-break: break-word;   /* fallback */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* ====== Independent scroll columns for /tables/ ====== */

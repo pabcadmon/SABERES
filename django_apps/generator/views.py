@@ -446,7 +446,6 @@ def tables_search(request):
     subject_id = (request.POST.get("subject_id") or "").strip()
     q = (request.POST.get("q") or "").strip()
 
-    # ✅ selección actual (viene de los hidden inputs)
     selected_codes = [c.strip() for c in request.POST.getlist("codes") if c.strip()]
 
     subjects_qs = (
@@ -457,66 +456,84 @@ def tables_search(request):
     subject = subjects_qs.filter(id=subject_id).first() if subject_id else None
     has_subject = subject is not None
 
-    # ✅ groups SIEMPRE definido
     groups = {"SSBB": [], "CE": [], "CEv": [], "DO": []}
     groups_cols = {"SSBB": [], "CE": [], "CEv": [], "DO": []}
 
-    if has_subject and q:
-
+    if has_subject:
         data = cargar_datos(subject.dataset_path)
         df = build_codigos_df(data.ssbb_df, data.ce_df, data.cev_df, data.do_df)
 
-        q_low = q.lower()
         cod = df["Código"].astype(str)
         lab = df["Etiqueta"].astype(str)
 
-        # ✅ CREAR los buckets
-        starts = df[cod.str.lower().str.startswith(q_low)]
-        contains = df[~cod.str.lower().str.startswith(q_low) & cod.str.lower().str.contains(q_low)]
-        label_contains = df[
-            ~cod.str.lower().str.contains(q_low) &
-            lab.str.lower().str.contains(q_low)
-        ]
-        
-        starts = _sort_df_by_codigo_natural(starts)
-        contains = _sort_df_by_codigo_natural(contains)
-        label_contains = _sort_df_by_codigo_natural(label_contains)
-
         out = []
-        for part in (starts, contains, label_contains):
-            for _, row in part.iterrows():
+
+        if q:
+            q_low = q.lower()
+
+            starts = df[cod.str.lower().str.startswith(q_low)]
+            contains = df[~cod.str.lower().str.startswith(q_low) & cod.str.lower().str.contains(q_low)]
+            label_contains = df[
+                ~cod.str.lower().str.contains(q_low) &
+                lab.str.lower().str.contains(q_low)
+            ]
+
+            starts = _sort_df_by_codigo_natural(starts)
+            contains = _sort_df_by_codigo_natural(contains)
+            label_contains = _sort_df_by_codigo_natural(label_contains)
+
+            for part in (starts, contains, label_contains):
+                for _, row in part.iterrows():
+                    out.append({
+                        "code": str(row["Código"]),
+                        "label": str(row["Etiqueta"]),
+                        "tipo": str(row["Tipo"]),
+                    })
+                    if len(out) >= 50:
+                        break
+                if len(out) >= 50:
+                    break
+
+        else:
+            # 🔥 NUEVO: sin query -> mostrar TODO (o un máximo alto)
+            df_all = _sort_df_by_codigo_natural(df)
+            print(df_all)
+
+            # si quieres "todo todo", quita el límite o súbelo
+            MAX_ALL = 500  # recomendado para no matar el render si hay miles
+            for _, row in df_all.iterrows():
                 out.append({
                     "code": str(row["Código"]),
                     "label": str(row["Etiqueta"]),
                     "tipo": str(row["Tipo"]),
                 })
-                if len(out) >= 50:
+                if len(out) >= MAX_ALL:
                     break
-            if len(out) >= 50:
-                break
 
-        # ✅ agrupar por tipo
+        # agrupar por tipo
         for item in out:
             t = item.get("tipo")
             if t in groups:
                 groups[t].append(item)
-                
-        MAX_PER_COL = 10
 
+        MAX_PER_COL = 15
         groups_cols = {
             "SSBB": _chunk_list(groups["SSBB"], MAX_PER_COL),
             "CE": _chunk_list(groups["CE"], MAX_PER_COL),
             "CEv": _chunk_list(groups["CEv"], MAX_PER_COL),
             "DO": _chunk_list(groups["DO"], MAX_PER_COL),
         }
-    # ✅ pasar selected_codes al template
+
     ctx = {
         "has_subject": has_subject,
         "q": q,
         "groups_cols": groups_cols,
         "selected_codes": selected_codes,
+        "is_full_list": has_subject and not q,   # opcional para el template
+        "max_all": 500,                          # opcional
     }
     return render(request, "generator/_code_results.html", ctx)
+
 
 def _chunk_list(items, chunk_size: int):
     return [items[i:i + chunk_size] for i in range(0, len(items), chunk_size)]
