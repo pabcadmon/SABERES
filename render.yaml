@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: saberes-multi
+    env: python
+    buildCommand: ./build.sh
+    startCommand: gunicorn web.wsgi:application
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: "*"
