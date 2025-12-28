@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # -------------------------------------------------------------------
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
 
-DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+DEBUG = True
 
 # Comma-separated hosts, e.g. "example.com,.onrender.com,localhost,127.0.0.1"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
