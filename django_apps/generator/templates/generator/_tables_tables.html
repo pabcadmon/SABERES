@@ -7,9 +7,15 @@
 
 {% if table1 %}
   <div class="table-card">
-    <h3>Relaciones por tipo</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0;">Relaciones por tipo</h3>
+      <div style="display: flex; gap: 0.5rem;">
+        <button onclick="copyTableToClipboard('table1')" class="btn-small">📋 Copiar</button>
+        <button onclick="exportTableToCSV('table1', 'relaciones-por-tipo')" class="btn-small">📥 Exportar</button>
+      </div>
+    </div>
     <div class="table-scroll">
-      <table class="nice-table">
+      <table class="nice-table" id="table1">
         <thead>
           <tr>
             {% for h in table1.headers %}<th>{{ h }}</th>{% endfor %}
@@ -29,35 +35,154 @@
   </div>
 {% endif %}
 
-{% if table2 %}
+{% if table2_ssbb or table2_ce or table2_cev or table2_do %}
   <div class="table-card">
-    <h3>Saberes básicos relacionados</h3>
-    <div class="table-scroll">
-      <table class="nice-table">
-        <thead>
-          <tr>
-            {% for h in table2.headers %}<th>{{ h }}</th>{% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in table2.rows %}
-            <tr>
-              {% for cell in row %}
-                <td>{{ cell|safe }}</td>
-              {% endfor %}
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0;">Relaciones individuales</h3>
+      <div style="display: flex; gap: 0.5rem;">
+        <button onclick="copyTableToClipboard('current-relations-table')" class="btn-small">📋 Copiar</button>
+        <button onclick="exportTableToCSV('current-relations-table', 'relaciones-individuales')" class="btn-small">📥 Exportar</button>
+      </div>
     </div>
+    
+    <!-- Desplegable para seleccionar tipo -->
+    <div class="dropdown-section" style="margin-bottom: 1rem;">
+      <label for="code-type-selector">Selecciona tipo de código:</label>
+      <select id="code-type-selector" onchange="switchRelationsTable(this.value)">
+        <option value="ssbb" {% if table2_ssbb %}selected{% endif %}>SSBB (Saberes Básicos)</option>
+        <option value="ce" {% if table2_ce and not table2_ssbb %}selected{% endif %}>CE (Competencias Específicas)</option>
+        <option value="cev" {% if table2_cev and not table2_ssbb and not table2_ce %}selected{% endif %}>CEv (Criterios de Evaluación)</option>
+        <option value="do" {% if table2_do and not table2_ssbb and not table2_ce and not table2_cev %}selected{% endif %}>DO (Descriptores Operativos)</option>
+      </select>
+    </div>
+
+    <!-- Tabla SSBB -->
+    {% if table2_ssbb %}
+      <div id="table-ssbb" class="table-relations-content">
+        <h4>SSBB relacionados</h4>
+        <div class="table-scroll">
+          <table class="nice-table current-relations-table">
+            <thead>
+              <tr>
+                {% for h in table2_ssbb.headers %}<th>{{ h }}</th>{% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in table2_ssbb.rows %}
+                <tr>
+                  {% for cell in row %}
+                    <td>{{ cell|safe }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Tabla CE -->
+    {% if table2_ce %}
+      <div id="table-ce" class="table-relations-content" style="display: none;">
+        <h4>CE relacionados</h4>
+        <div class="table-scroll">
+          <table class="nice-table current-relations-table">
+            <thead>
+              <tr>
+                {% for h in table2_ce.headers %}<th>{{ h }}</th>{% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in table2_ce.rows %}
+                <tr>
+                  {% for cell in row %}
+                    <td>{{ cell|safe }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Tabla CEv -->
+    {% if table2_cev %}
+      <div id="table-cev" class="table-relations-content" style="display: none;">
+        <h4>CEv relacionados</h4>
+        <div class="table-scroll">
+          <table class="nice-table current-relations-table">
+            <thead>
+              <tr>
+                {% for h in table2_cev.headers %}<th>{{ h }}</th>{% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in table2_cev.rows %}
+                <tr>
+                  {% for cell in row %}
+                    <td>{{ cell|safe }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Tabla DO -->
+    {% if table2_do %}
+      <div id="table-do" class="table-relations-content" style="display: none;">
+        <h4>DO relacionados</h4>
+        <div class="table-scroll">
+          <table class="nice-table current-relations-table">
+            <thead>
+              <tr>
+                {% for h in table2_do.headers %}<th>{{ h }}</th>{% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in table2_do.rows %}
+                <tr>
+                  {% for cell in row %}
+                    <td>{{ cell|safe }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
   </div>
+
+  <script>
+    function switchRelationsTable(type) {
+      // Ocultar todas las tablas
+      const tables = document.querySelectorAll('.table-relations-content');
+      tables.forEach(table => table.style.display = 'none');
+      
+      // Mostrar la tabla seleccionada
+      const selectedTable = document.getElementById('table-' + type);
+      if (selectedTable) {
+        selectedTable.style.display = 'block';
+      }
+    }
+  </script>
 {% endif %}
 
 {% if table3 %}
   <div class="table-card">
-    <h3>Descripciones de elementos mostrados</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0;">Descripciones de elementos mostrados</h3>
+      <div style="display: flex; gap: 0.5rem;">
+        <button onclick="copyTableToClipboard('table3')" class="btn-small">📋 Copiar</button>
+        <button onclick="exportTableToCSV('table3', 'descripciones')" class="btn-small">📥 Exportar</button>
+      </div>
+    </div>
     <div class="table-scroll">
-      <table class="nice-table">
+      <table class="nice-table" id="table3">
         <thead>
           <tr>
             {% for h in table3.headers %}<th>{{ h }}</th>{% endfor %}
@@ -76,3 +201,106 @@
     </div>
   </div>
 {% endif %}
+
+<script>
+  function copyTableToClipboard(tableId) {
+    let table;
+    if (tableId === 'current-relations-table') {
+      // Para la tabla de relaciones, obtener la visible
+      const visibleDiv = document.querySelector('.table-relations-content:not([style*="display: none"])');
+      if (!visibleDiv) {
+        alert('No hay tabla visible para copiar');
+        return;
+      }
+      table = visibleDiv.querySelector('table');
+    } else {
+      table = document.getElementById(tableId);
+    }
+    
+    if (!table) {
+      alert('Tabla no encontrada');
+      return;
+    }
+    
+    let csvContent = '';
+    const rows = table.querySelectorAll('tr');
+    
+    rows.forEach((row, rowIndex) => {
+      const cells = row.querySelectorAll('th, td');
+      const rowData = Array.from(cells).map(cell => {
+        // Limpiar HTML si existe
+        let text = cell.textContent.trim();
+        // Escapar comillas y saltos de línea
+        text = text.replace(/"/g, '""').replace(/\n/g, ' ');
+        // Si contiene comas, espacios o comillas, envolver entre comillas
+        if (text.includes(',') || text.includes('"') || text.includes(' ')) {
+          text = `"${text}"`;
+        }
+        return text;
+      });
+      csvContent += rowData.join('\t') + '\n';
+    });
+    
+    // Copiar al portapapeles
+    navigator.clipboard.writeText(csvContent).then(() => {
+      alert('¡Tabla copiada al portapapeles!');
+    }).catch(() => {
+      // Fallback para navegadores antiguos
+      const textarea = document.createElement('textarea');
+      textarea.value = csvContent;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      alert('¡Tabla copiada al portapapeles!');
+    });
+  }
+
+  function exportTableToCSV(tableId, filename) {
+    let table;
+    if (tableId === 'current-relations-table') {
+      // Para la tabla de relaciones, obtener la visible
+      const visibleDiv = document.querySelector('.table-relations-content:not([style*="display: none"])');
+      if (!visibleDiv) {
+        alert('No hay tabla visible para exportar');
+        return;
+      }
+      table = visibleDiv.querySelector('table');
+    } else {
+      table = document.getElementById(tableId);
+    }
+    
+    if (!table) {
+      alert('Tabla no encontrada');
+      return;
+    }
+    
+    let csvContent = 'data:text/csv;charset=utf-8,';
+    const rows = table.querySelectorAll('tr');
+    
+    rows.forEach((row, rowIndex) => {
+      const cells = row.querySelectorAll('th, td');
+      const rowData = Array.from(cells).map(cell => {
+        // Limpiar HTML si existe
+        let text = cell.textContent.trim();
+        // Escapar comillas y saltos de línea
+        text = text.replace(/"/g, '""').replace(/\n/g, ' ');
+        // Si contiene comas, espacios o comillas, envolver entre comillas
+        if (text.includes(',') || text.includes('"') || text.includes(' ')) {
+          text = `"${text}"`;
+        }
+        return text;
+      });
+      csvContent += rowData.join(',') + '\n';
+    });
+    
+    // Crear enlace de descarga
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `${filename}-${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+</script>

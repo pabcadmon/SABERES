@@ -11,6 +11,7 @@ def clasificar_tipo(codigo: str, data: CurriculumData) -> str:
     if c in data.do_set: return "DO"
     return "Otro"
 
+
 def generar_tabla1(seleccionados, data: CurriculumData):
     resumen = []
     tipos = {
@@ -61,10 +62,10 @@ def generar_tabla1(seleccionados, data: CurriculumData):
                 ce_do_exp['CE'].astype(str).isin(codigos)
             ]['DOs asociados'].dropna().astype(str).unique().tolist()
 
-            ce_rel = codigos  # ellos mismos
+            ce_rel = []  # No mostrar CE seleccionados en su propia columna
 
         elif tipo == 'SSBB':
-            sbs_rel = codigos
+            sbs_rel = []  # No mostrar SSBB seleccionados en su propia columna
 
             ce_rel = relaciones_long[
                 (relaciones_long['SB'].isin(codigos)) &
@@ -81,7 +82,7 @@ def generar_tabla1(seleccionados, data: CurriculumData):
             ]['DOs asociados'].dropna().astype(str).unique().tolist()
 
         elif tipo == 'CEv':
-            cev_rel = codigos
+            cev_rel = []  # No mostrar CEv seleccionados en su propia columna
 
             # Encontrar SB asociados
             sbs_rel = relaciones_long[
@@ -99,23 +100,21 @@ def generar_tabla1(seleccionados, data: CurriculumData):
             ]['DOs asociados'].dropna().astype(str).unique().tolist()
 
         elif tipo == 'DO':
-            do_rel = codigos
+            do_rel = []  # No mostrar DO seleccionados en su propia columna
 
         resumen.append({
             'Tipo': nombre_tipo,
             'Elementos seleccionados': elementos,
-            'SSBB relacionados': ', '.join(sorted(set(sbs_rel), key=natural_sort_key)),
-            'CE relacionados': ', '.join(sorted(set(ce_rel), key=natural_sort_key)),
-            'CEv relacionados': ', '.join(sorted(set(cev_rel), key=natural_sort_key)),
-            'DO relacionados': ', '.join(sorted(set(do_rel), key=natural_sort_key)),
+            'SSBB relacionados': ', '.join(sorted(set(sbs_rel), key=natural_sort_key)) or '-',
+            'CE relacionados': ', '.join(sorted(set(ce_rel), key=natural_sort_key)) or '-',
+            'CEv relacionados': ', '.join(sorted(set(cev_rel), key=natural_sort_key)) or '-',
+            'DO relacionados': ', '.join(sorted(set(do_rel), key=natural_sort_key)) or '-',
         })
 
     return pd.DataFrame(resumen)
 
 
-
-
-def generar_tabla2(seleccionados, data: CurriculumData) -> pd.DataFrame:
+def generar_tabla2_ssbb(seleccionados, data: CurriculumData) -> pd.DataFrame:
     relaciones_long = data.relaciones_long
     ce_do_exp = data.ce_do_exp
     # SB directamente seleccionados o relacionados con seleccionados
@@ -162,6 +161,146 @@ def generar_tabla2(seleccionados, data: CurriculumData) -> pd.DataFrame:
         df = df.sort_values("SB", key=lambda s: s.map(natural_sort_key))
     return df
 
+
+def generar_tabla2_ce(seleccionados, data: CurriculumData) -> pd.DataFrame:
+    """
+    Genera tabla de relaciones para cada CE seleccionado/relacionado.
+    Similar a generar_tabla2 pero para CE en lugar de SSBB.
+    """
+    relaciones_long = data.relaciones_long
+    ce_do_exp = data.ce_do_exp
+    
+    # CE directamente seleccionados o relacionados
+    ce_directos = [s for s in seleccionados if s in relaciones_long['Codigo'].astype(str).values and 
+                   relaciones_long[relaciones_long['Codigo'].astype(str) == s]['Tipo'].str.strip().str.upper().iloc[0] == 'CE']
+    ce_relacionados = relaciones_long[
+        relaciones_long['SB'].astype(str).isin(seleccionados)
+    ]['Codigo'].dropna().astype(str).unique().tolist()
+    ce_relacionados = [c for c in ce_relacionados if c in relaciones_long[relaciones_long['Tipo'].str.strip().str.upper() == 'CE']['Codigo'].values]
+    
+    ces_finales = list(set(ce_directos + ce_relacionados))
+
+    registros = []
+    for ce in ces_finales:
+        relacionados = relaciones_long[relaciones_long['Codigo'].astype(str) == ce]
+        fila = {'CE': ce}
+
+        sb_vals = relacionados[relacionados['Codigo'].astype(str) == ce]['SB'].dropna().astype(str).unique().tolist()
+        fila['SSBB'] = ', '.join(sorted(sb_vals, key=natural_sort_key)) if sb_vals else ''
+
+        # CEv por prefijo del CE
+        cev_vals = data.cev_df[
+            data.cev_df['Número'].astype(str).str.startswith(str(ce) + '.')
+        ]['Número'].dropna().astype(str).unique().tolist()
+        fila['CEv'] = ', '.join(sorted(cev_vals, key=natural_sort_key)) if cev_vals else ''
+
+        # DO por relación directa
+        dos = ce_do_exp[ce_do_exp['CE'].astype(str) == ce]['DOs asociados'].dropna().astype(str).unique().tolist()
+        fila['DO'] = ', '.join(sorted(dos, key=natural_sort_key)) if dos else ''
+        
+        registros.append(fila)
+
+    df = pd.DataFrame(registros)
+    if not df.empty and "CE" in df.columns:
+        df = df.sort_values("CE", key=lambda s: s.map(natural_sort_key))
+    return df
+
+
+def generar_tabla2_cev(seleccionados, data: CurriculumData) -> pd.DataFrame:
+    """
+    Genera tabla de relaciones para cada CEv seleccionado/relacionado.
+    """
+    relaciones_long = data.relaciones_long
+    ce_do_exp = data.ce_do_exp
+    
+    # CEv directamente seleccionados o relacionados
+    cev_directos = [s for s in seleccionados if s in relaciones_long['Codigo'].astype(str).values and 
+                    relaciones_long[relaciones_long['Codigo'].astype(str) == s]['Tipo'].str.strip().str.upper().iloc[0] == 'CEV']
+    cev_relacionados = relaciones_long[
+        relaciones_long['SB'].astype(str).isin(seleccionados)
+    ]['Codigo'].dropna().astype(str).unique().tolist()
+    cev_relacionados = [c for c in cev_relacionados if c in relaciones_long[relaciones_long['Tipo'].str.strip().str.upper() == 'CEV']['Codigo'].values]
+    
+    cevs_finales = list(set(cev_directos + cev_relacionados))
+
+    registros = []
+    for cev in cevs_finales:
+        relacionados = relaciones_long[relaciones_long['Codigo'].astype(str) == cev]
+        fila = {'CEv': cev}
+
+        sb_vals = relacionados[relacionados['Codigo'].astype(str) == cev]['SB'].dropna().astype(str).unique().tolist()
+        fila['SSBB'] = ', '.join(sorted(sb_vals, key=natural_sort_key)) if sb_vals else ''
+
+        # CE padre por prefijo
+        ce_padre = str(cev).split('.')[0] if '.' in str(cev) else ''
+        fila['CE'] = ce_padre if ce_padre in data.ce_df['CE'].astype(str).values else ''
+
+        # DO por relación con el CE
+        dos = ce_do_exp[ce_do_exp['CE'].astype(str) == ce_padre]['DOs asociados'].dropna().astype(str).unique().tolist() if ce_padre else []
+        fila['DO'] = ', '.join(sorted(dos, key=natural_sort_key)) if dos else ''
+        
+        registros.append(fila)
+
+    df = pd.DataFrame(registros)
+    if not df.empty and "CEv" in df.columns:
+        df = df.sort_values("CEv", key=lambda s: s.map(natural_sort_key))
+    return df
+
+
+def generar_tabla2_do(seleccionados, data: CurriculumData) -> pd.DataFrame:
+    """
+    Genera tabla de relaciones para cada DO seleccionado/relacionado.
+    """
+    relaciones_long = data.relaciones_long
+    ce_do_exp = data.ce_do_exp
+    
+    # DO directamente seleccionados o relacionados
+    do_directos = [s for s in seleccionados if s in ce_do_exp['DOs asociados'].astype(str).values]
+    
+    # CE relacionados a seleccionados
+    ce_relacionados = relaciones_long[
+        relaciones_long['SB'].astype(str).isin(seleccionados) &
+        (relaciones_long['Tipo'].str.strip().str.upper() == 'CE')
+    ]['Codigo'].dropna().astype(str).unique().tolist()
+    
+    # DO relacionados a esos CE
+    do_relacionados = ce_do_exp[
+        ce_do_exp['CE'].astype(str).isin(ce_relacionados)
+    ]['DOs asociados'].dropna().astype(str).unique().tolist()
+    
+    dos_finales = list(set(do_directos + do_relacionados))
+
+    registros = []
+    for do in dos_finales:
+        fila = {'DO': do}
+
+        # CE asociado
+        ce_vals = ce_do_exp[ce_do_exp['DOs asociados'].astype(str) == do]['CE'].dropna().astype(str).unique().tolist()
+        fila['CE'] = ', '.join(sorted(ce_vals, key=natural_sort_key)) if ce_vals else ''
+
+        # CEv del CE
+        cev_vals = []
+        if ce_vals:
+            for ce in ce_vals:
+                cevs = data.cev_df[
+                    data.cev_df['Número'].astype(str).str.startswith(str(ce) + '.')
+                ]['Número'].dropna().astype(str).unique().tolist()
+                cev_vals.extend(cevs)
+        fila['CEv'] = ', '.join(sorted(set(cev_vals), key=natural_sort_key)) if cev_vals else ''
+
+        # SSBB relacionados a los CE
+        sb_vals = relaciones_long[
+            (relaciones_long['Codigo'].astype(str).isin(ce_vals)) &
+            (relaciones_long['Tipo'].str.strip().str.upper() == 'CE')
+        ]['SB'].dropna().astype(str).unique().tolist()
+        fila['SSBB'] = ', '.join(sorted(set(sb_vals), key=natural_sort_key)) if sb_vals else ''
+        
+        registros.append(fila)
+
+    df = pd.DataFrame(registros)
+    if not df.empty and "DO" in df.columns:
+        df = df.sort_values("DO", key=lambda s: s.map(natural_sort_key))
+    return df
 
 
 def generar_tabla3(seleccionados, data: CurriculumData):

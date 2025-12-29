@@ -310,7 +310,10 @@ def tables_render(request):
         return render(request, "generator/_tables_tables.html", {
             "has_subject": False,
             "table1": None,
-            "table2": None,
+            "table2_ssbb": None,
+            "table2_ce": None,
+            "table2_cev": None,
+            "table2_do": None,
             "table3": None,
             "error": None,
         })
@@ -320,8 +323,10 @@ def tables_render(request):
         return render(request, "generator/_tables_tables.html", {
             "has_subject": True,
             "table1": None,
-            "table2": None,
-            "table3": None,
+            "table2_ssbb": None,
+            "table2_ce": None,
+            "table2_cev": None,
+            "table2_do": None,            "table3": None,
             "error": None,
         })
 
@@ -335,7 +340,7 @@ def tables_render(request):
 
     has_selection = has_subject and bool(selected_codes)
 
-    table1 = table2 = table3 = None
+    table1 = table2_ssbb = table2_ce = table2_cev = table2_do = table3 = None
     error = None
 
     if has_selection:
@@ -346,15 +351,24 @@ def tables_render(request):
                 build_excel=False,
             )
 
-            tabla2_display = marcar_seleccion_tabla2(res.tabla2, selected_codes)
+            tabla2_ssbb_display = marcar_seleccion_tabla2(res.tabla2_ssbb, selected_codes)
+            tabla2_ce_display = marcar_seleccion_tabla2(res.tabla2_ce, selected_codes)
+            tabla2_cev_display = marcar_seleccion_tabla2(res.tabla2_cev, selected_codes)
+            tabla2_do_display = marcar_seleccion_tabla2(res.tabla2_do, selected_codes)
             tabla3_display = marcar_seleccion_tabla3(res.tabla3, selected_codes)
 
             t1 = _decorate_df_codes(res.tabla1, code_to_type, selected_codes)
-            t2 = _decorate_df_codes(tabla2_display, code_to_type, selected_codes)
+            t2_ssbb = _decorate_df_codes(tabla2_ssbb_display, code_to_type, selected_codes)
+            t2_ce = _decorate_df_codes(tabla2_ce_display, code_to_type, selected_codes)
+            t2_cev = _decorate_df_codes(tabla2_cev_display, code_to_type, selected_codes)
+            t2_do = _decorate_df_codes(tabla2_do_display, code_to_type, selected_codes)
             t3 = _decorate_df_codes(tabla3_display, code_to_type, selected_codes)
 
             table1 = _df_to_ctx(t1)
-            table2 = _df_to_ctx(t2)
+            table2_ssbb = _df_to_ctx(t2_ssbb)
+            table2_ce = _df_to_ctx(t2_ce)
+            table2_cev = _df_to_ctx(t2_cev)
+            table2_do = _df_to_ctx(t2_do)
             cols_to_hide = [c for c in ["Tipo", "orden", "Orden"] if c in t3.columns]
             t3 = t3.drop(columns=cols_to_hide)
 
@@ -367,7 +381,10 @@ def tables_render(request):
         "has_subject": has_subject,
         "has_selection": has_selection,
         "table1": table1,
-        "table2": table2,
+        "table2_ssbb": table2_ssbb,
+        "table2_ce": table2_ce,
+        "table2_cev": table2_cev,
+        "table2_do": table2_do,
         "table3": table3,
         "error": error,
     }
