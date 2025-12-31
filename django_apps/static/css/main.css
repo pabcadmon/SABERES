@@ -12,14 +12,20 @@
   --radius-sm: 10px;
   --shadow: 0 10px 28px rgba(0,0,0,.06);
 
-  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+
   --content-max: clamp(1100px, 92vw, 1680px);
 }
 
-/* ====== Base ====== */
+/* ================= BASE ================= */
+
 *{ box-sizing: border-box; }
-html, body{ height: 100%; }
+
+html, body{
+  height: 100%;
+}
+
 body{
   margin: 0;
   font-family: var(--sans);
@@ -30,62 +36,67 @@ body{
 a{ color: inherit; }
 code, pre{ font-family: var(--mono); }
 
+/* ================= LAYOUT GLOBAL ================= */
+
+.page{
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page > main{
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+/* ================= CONTAINER ================= */
+/* ESTE es el comportamiento correcto y único */
+
 .container{
+  width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
   padding: 22px 16px;
+  min-width: 0; /* crítico para grids y overflow */
 }
 
-.page{
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-main{
-  flex: 1;
-}
+/* ================= TYPO ================= */
 
-/* ====== Typography ====== */
-.h1{ font-size: 28px; margin: 0 0 8px 0; letter-spacing: -.2px; }
-.h2{ font-size: 20px; margin: 0 0 10px 0; }
+.h1{ font-size: 28px; margin: 0 0 8px; letter-spacing: -.2px; }
+.h2{ font-size: 20px; margin: 0 0 10px; }
+
 .p-muted{ color: var(--muted); margin: 0; }
 .small-muted{ color: var(--muted); font-size: 13px; }
 
-/* ====== Cards / Panels ====== */
+/* ================= CARDS ================= */
+
 .card{
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 18px;
-}
-.card + .card{ margin-top: 14px; }
-
-.card-header{
-  display:flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-.divider{
-  height: 1px;
-  background: var(--border);
-  margin: 14px 0;
+  min-width: 0; /* IMPORTANTÍSIMO en layouts grid */
 }
 
-/* ====== Layout helpers ====== */
+.card + .card{
+  margin-top: 14px;
+}
+
+/* ================= HELPERS ================= */
+
 .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
-.stack{ display:flex; flex-direction:column; gap: 10px; }
-.spacer{ height: 16px; }
+.stack{ display:flex; flex-direction:column; gap:10px; }
 .push{ flex:1; }
 
-/* ====== Forms ====== */
+/* ================= FORMS ================= */
+
 label{
   display: inline-block;
   font-weight: 650;
   margin-bottom: 6px;
 }
+
 .input, select{
   width: 100%;
   max-width: 520px;
@@ -95,23 +106,11 @@ label{
   background: #fff;
   color: var(--text);
 }
-select{ max-width: 420px; }
-.form-row{
-  display:flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: end;
-}
-.field{
-  min-width: 220px;
-}
-.help{
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 6px;
-}
 
-/* ====== Buttons ====== */
+select{ max-width: 420px; }
+
+/* ================= BUTTONS ================= */
+
 .btn{
   display:inline-flex;
   align-items:center;
@@ -120,30 +119,24 @@ select{ max-width: 420px; }
   padding:10px 14px;
   border-radius: 12px;
   border:1px solid var(--border);
-  text-decoration:none;
   background: #fff;
-  color: inherit;
   cursor: pointer;
-  user-select: none;
 }
-.btn:hover{ filter: brightness(.98); }
-.btn:active{ transform: translateY(1px); }
 
 .btn-primary{
-  border-color: transparent;
   background: var(--primary);
   color: var(--primary-ink);
-}
-.btn-ghost{
-  background: transparent;
-}
-.btn-small{
-  padding: 8px 10px;
-  border-radius: 10px;
-  font-size: 14px;
+  border-color: transparent;
 }
 
-/* ====== Navbar ====== */
+.btn-small{
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+/* ================= NAVBAR ================= */
+
 .navbar{
   position: sticky;
   top: 0;
@@ -152,6 +145,7 @@ select{ max-width: 420px; }
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
+
 .navbar-inner{
   max-width: var(--content-max);
   margin: 0 auto;
@@ -161,270 +155,121 @@ select{ max-width: 420px; }
   align-items:center;
   gap: 12px;
 }
+
 .navbrand{
   font-weight: 900;
-  letter-spacing: -.2px;
   text-decoration:none;
 }
+
 .navlinks{
   display:flex;
   gap: 8px;
-  flex-wrap: wrap;
-  align-items:center;
 }
+
 .navlinks a{
-  text-decoration:none;
   padding: 8px 10px;
   border-radius: 10px;
-  border: 1px solid transparent;
+  text-decoration:none;
 }
-.navlinks a:hover{
-  border-color: var(--border);
-  background: #fff;
-}
+
 .nav-user{
   display:flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap:10px;
   align-items:center;
 }
-.nav-user .username{
-  color: var(--muted);
-  font-size: 14px;
-}
 
-/* ====== Tables ====== */
-.table-card{
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
-  margin-top: 14px;
-  background: #fff;
-  box-shadow: var(--shadow);
-}
-.table-card h3{
-  margin: 0;
-  font-size: 18px;
-}
-.table-scroll{
-  overflow-x: auto;
-  border-radius: 12px;
-  margin-top: 10px;
-}
+/* ================= CODE RESULTS (shared) ================= */
 
-.nice-table{
-  border-collapse: separate;
-  border-spacing: 0;
+#code-results{
   width: 100%;
-  font-size: 14px;
+  overflow-x: auto;
 }
-.nice-table th,
-.nice-table td{
-  padding: 10px 12px;
-  border-bottom: 1px solid #f0f1f5;
-  vertical-align: top;
-}
-.nice-table th{
-  position: sticky;
-  top: 0;
-  background: #fbfbfd;
-  z-index: 1;
-  text-align: left;
-  font-weight: 750;
-}
-
-/* ====== Code results grid (types) ====== */
-#code-results{ overflow-x: auto; }
 
 .type-grid{
-  display: inline-grid;
+  display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
   gap: 14px;
   align-items: start;
+  width: max-content;
 }
+
 .type-block{
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 10px;
-  width: max-content;
   background: #fff;
+  width: max-content;
 }
+
 .type-header{
   font-weight: 850;
   text-align: center;
   margin-bottom: 10px;
 }
+
 .type-cols{
-  display: inline-grid;
+  display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
   gap: 10px;
-  align-items: start;
 }
+
 .type-col{ width: max-content; }
 
-/* ====== Code pill (clickable) ====== */
-.code-pill:hover{ filter: brightness(0.98); }
-.code-pill.is-selected{
-  color: white;
-  font-weight: 650;
-}
-
-/* ====== Code tags (inside tables) ====== */
-.code-tag{
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  margin: 2px 4px 2px 0;
-  white-space: nowrap;
-  font-family: var(--mono);
-  font-size: 12px;
-}
-.code-tag.is-selected{ color: #fff; font-weight: 750; }
-
-/* ====== Colors by type ====== */
-.type-ssbb{ border-color: #c44; }
-.type-do{ border-color: #36c; }
-.type-ce{ border-color: #cc4; }
-.type-cev{ border-color: #3a3; }
-
-.code-pill.type-ssbb.is-selected{ background: #c44; }
-.code-pill.type-do.is-selected{ background: #36c; }
-.code-pill.type-ce.is-selected{ background: #cc4; color: #222; }
-.code-pill.type-cev.is-selected{ background: #3a3; }
-
-.code-tag.type-ssbb{ border-color: #c44; }
-.code-tag.type-do{ border-color: #36c; }
-.code-tag.type-ce{ border-color: #cc4; }
-.code-tag.type-cev{ border-color: #3a3; }
-
-.code-tag.type-ssbb.is-selected{ background: #c44; }
-.code-tag.type-do.is-selected{ background: #36c; }
-.code-tag.type-ce.is-selected{ background: #cc4; color: #222; }
-.code-tag.type-cev.is-selected{ background: #3a3; }
-
-/* ====== Tiny status pills ====== */
-.badge{
-  display:inline-flex;
-  align-items:center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: #fff;
-  font-size: 13px;
-  color: var(--muted);
-}
-.badge.success{ border-color: #bfe7c8; color: #1f6d34; background: #f2fbf4; }
-.badge.failed{ border-color: #f3c2c2; color: #8a1f1f; background: #fff5f5; }
-
-/* ====== Legacy chips (kept, but not used) ====== */
-.chips{ display:flex; flex-wrap:wrap; gap:8px; }
-.chip{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: #fff;
-}
-.chip code{ font-family: var(--mono); }
-
-/* ====== Tables page 2-col layout ====== */
-.tables-layout{
-  display: grid;
-  grid-template-columns: clamp(440px, 40vw, 760px) 1fr;
-  gap: 14px;
-  align-items: start;
-}
-
-@media (max-width: 980px){
-  .tables-layout{
-    grid-template-columns: 1fr;
-  }
-}
-
-.sticky-panel{
-  position: sticky;
-  top: 76px; /* navbar height aprox */
-  align-self: start;
-}
-
-.panel-section + .panel-section{
-  margin-top: 14px;
-}
-
-.results-box{
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
-  background: #fff;
-  box-shadow: var(--shadow);
-}
-
-.results-box .card-header{
-  margin-bottom: 10px;
-}
-
-/* Limita altura del bloque de resultados y da scroll vertical */
-#code-results{
-  max-height: none;
-  overflow: visible;
-  padding-right: 0;
-}
-
-/* Ajuste visual para selects/inputs dentro del panel */
-.tables-panel select,
-.tables-panel .input{
-  max-width: 100%;
-}
+/* ================= CODE PILL ================= */
 
 .code-pill{
   display: flex;
-  align-items: center;        /* centra vertical */
-  justify-content: center;    /* centra horizontal */
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  text-align: center;
-
   padding: 7px 9px;
   margin-bottom: 8px;
   border-radius: 10px;
   border: 1px solid #ddd;
   background: white;
   cursor: pointer;
-
   font-size: 13px;
   line-height: 1.2;
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
-/* ====== Independent scroll columns for /tables/ ====== */
+.code-pill:hover{ filter: brightness(.98); }
 
-/* Contenedor que ocupa (casi) toda la pantalla bajo la navbar */
-.tables-shell{
-  height: calc(100vh - 76px); /* ajusta si tu navbar es más alta/baja */
-  overflow: hidden;           /* importante: evita scroll del body aquí */
+.code-pill.is-selected{
+  color: white;
+  font-weight: 650;
 }
 
-/* Grid de 2 columnas, con altura completa */
-.tables-layout{
-  height: 100%;
+/* ================= COLORS BY TYPE ================= */
+
+.type-ssbb{ border-color: #c44; }
+.type-ce{ border-color: #cc4; }
+.type-cev{ border-color: #3a3; }
+.type-do{ border-color: #36c; }
+
+.code-pill.type-ssbb.is-selected{ background:#c44; }
+.code-pill.type-ce.is-selected{ background:#cc4; color:#222; }
+.code-pill.type-cev.is-selected{ background:#3a3; }
+.code-pill.type-do.is-selected{ background:#36c; }
+
+/* ================= TABLES PAGE LAYOUT ================= */
+
+.tables-shell{
+  height: calc(100vh - 76px);
   overflow: hidden;
 }
 
-/* Columna izquierda: scroll propio */
-.tables-left{
+.tables-layout{
+  display: grid;
+  grid-template-columns: clamp(440px, 40vw, 760px) 1fr;
+  gap: 14px;
   height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 6px; /* para que el scrollbar no “muerda” */
 }
 
-/* Columna derecha: scroll propio */
+.tables-left,
 .tables-right{
   height: 100%;
   overflow-y: auto;
@@ -432,16 +277,12 @@ select{ max-width: 420px; }
   padding-right: 6px;
 }
 
-/* En móvil: vuelve a scroll normal (una sola columna) */
 @media (max-width: 980px){
-  .tables-shell{
-    height: auto;
-    overflow: visible;
-  }
   .tables-layout{
+    grid-template-columns: 1fr;
     height: auto;
-    overflow: visible;
   }
+
   .tables-left,
   .tables-right{
     height: auto;
@@ -450,26 +291,64 @@ select{ max-width: 420px; }
   }
 }
 
-/* ====== Table action buttons ====== */
-.btn-small {
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--text);
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.2s ease;
-  font-weight: 500;
+/* ================= CURRICULUM BUILDER ================= */
+
+#leftPane,
+#leftCodes{
+  min-width: 0;
+  overflow-x: auto;
 }
 
-.btn-small:hover {
-  background: #f5f5f5;
-  border-color: var(--primary);
-  color: var(--primary);
+.page{
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  align-items: stretch; /* CLAVE */
 }
 
-.btn-small:active {
-  transform: translateY(1px);
+.page > main{
+  flex: 1 0 auto;
+  width: 100%;
+  align-self: stretch; /* CLAVE */
+  min-width: 0;
 }
+
+/* ====== FIX DEFINITIVO: evitar shrink-to-fit ====== */
+.codes-scroll{
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* ===== FIX: evita que el <body> sea flex por accidente ===== */
+html, body {
+  width: 100%;
+  max-width: 100%;
+}
+
+body {
+  display: block !important;   /* <- clave: mata el flex en body */
+}
+
+/* En vez de .page a pelo */
+body > .page{
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  align-items: stretch;
+}
+
+/* y si quieres asegurar main */
+body > .page > main.container{
+  flex: 1 0 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* container de contenido: full width + max-width con margen */
+main.container{
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+

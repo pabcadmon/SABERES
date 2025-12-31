@@ -2,9 +2,11 @@ from pathlib import Path
 import re
 from django.utils.html import escape
 
+import json
+
 import traceback
 
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
 from django.conf import settings
 
@@ -32,6 +34,7 @@ from core.engine.generate import generate_from_excel
 from core.engine.display import marcar_seleccion_tabla2, marcar_seleccion_tabla3
 
 from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET
 
 from core.engine.sort import natural_sort_key
 from core.engine.generate import generate_from_excel
@@ -462,6 +465,7 @@ def tables_export(request):
 def tables_search(request):
     subject_id = (request.POST.get("subject_id") or "").strip()
     q = (request.POST.get("q") or "").strip()
+    mode = (request.POST.get("mode") or "").strip()
 
     selected_codes = [c.strip() for c in request.POST.getlist("codes") if c.strip()]
 
@@ -544,6 +548,7 @@ def tables_search(request):
     ctx = {
         "has_subject": has_subject,
         "q": q,
+        "mode": mode,
         "groups_cols": groups_cols,
         "selected_codes": selected_codes,
         "is_full_list": has_subject and not q,   # opcional para el template
@@ -654,3 +659,156 @@ def _decorate_df_codes(df, code_to_type: dict, selected_codes: list[str]):
     for col in out.columns:
         out[col] = out[col].apply(lambda v: _decorate_cell(v, code_to_type, selected_set))
     return out
+
+@login_required
+def curriculum_builder(request):
+    subjects = (
+        Subject.objects
+        .filter(usersubjectaccess__user=request.user, is_active=True)
+        .order_by("name")
+        .distinct()
+    )
+    return render(request, "curriculum/builder/builder.html", {"subjects": subjects})
+
+
+@login_required
+@require_POST
+def curriculum_analyze(request):
+    """
+    Espera JSON:
+    {
+      "subject_id": 123,
+      "units": [
+        {"name": "UD1", "ssbb": ["..."], "cev": ["..."]},
+        ...
+      ]
+    }
+    Devuelve:
+    {
+      "missing_ssbb": [{"code": "...", "label": "..."}],
+      "missing_cev":  [{"code": "...", "label": "..."}],
+      "totals": {...}
+    }
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return JsonResponse({"ok": False, "error": "JSON inválido."}, status=400)
+
+    subject_id = payload.get("subject_id")
+    units = payload.get("units") or []
+
+    if not subject_id:
+        return JsonResponse({"ok": False, "error": "Falta subject_id."}, status=400)
+
+    # ✅ Seguridad: asignatura válida + acceso del usuario (como tables_search / tables_view)
+    subjects_qs = (
+        Subject.objects
+        .filter(usersubjectaccess__user=request.user, is_active=True)
+        .distinct()
+    )
+    subject = subjects_qs.filter(id=subject_id).first()
+    if subject is None:
+        return JsonResponse({"ok": False, "error": "Asignatura no válida o sin acceso."}, status=404)
+
+    # 1) Universo desde Excel: todos los SSBB y CEv de esa asignatura
+    data = cargar_datos(subject.dataset_path)
+    df = build_codigos_df(data.ssbb_df, data.ce_df, data.cev_df, data.do_df)
+
+    # Normaliza a strings seguros
+    df["Código"] = df["Código"].astype(str)
+    df["Etiqueta"] = df["Etiqueta"].astype(str)
+    df["Tipo"] = df["Tipo"].astype(str)
+
+    # Solo SSBB y CEv
+    df_ssbb = df[df["Tipo"] == "SSBB"]
+    df_cev = df[df["Tipo"] == "CEv"]
+
+    # Mapa code -> label
+    all_ssbb = {}
+    for _, row in df_ssbb.iterrows():
+        code = str(row["Código"]).strip().rstrip(".")
+        all_ssbb[code] = str(row["Etiqueta"])
+
+    all_cev = {}
+    for _, row in df_cev.iterrows():
+        code = str(row["Código"]).strip().rstrip(".")
+        all_cev[code] = str(row["Etiqueta"])
+
+    # 2) Lo usado por el usuario (repartido entre unidades)
+    used_ssbb = set()
+    used_cev = set()
+
+    for u in units:
+        for x in (u.get("ssbb") or []):
+            if isinstance(x, str):
+                v = x.strip().rstrip(".")
+                if v != "":
+                    used_ssbb.add(v)
+
+        for x in (u.get("cev") or []):
+            if isinstance(x, str):
+                v = x.strip().rstrip(".")
+                if v != "":
+                    used_cev.add(v)
+
+    # 3) Missing
+    missing_ssbb_codes = [c for c in all_ssbb.keys() if c not in used_ssbb]
+    missing_cev_codes = [c for c in all_cev.keys() if c not in used_cev]
+
+    # Orden natural (reusa tu helper)
+    missing_ssbb_codes = sorted(missing_ssbb_codes, key=natural_sort_key)
+    missing_cev_codes = sorted(missing_cev_codes, key=natural_sort_key)
+
+    missing_ssbb = [{"code": c, "label": all_ssbb.get(c, "")} for c in missing_ssbb_codes]
+    missing_cev = [{"code": c, "label": all_cev.get(c, "")} for c in missing_cev_codes]
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "missing_ssbb": missing_ssbb,
+            "missing_cev": missing_cev,
+            "totals": {
+                "all_ssbb": len(all_ssbb),
+                "all_cev": len(all_cev),
+                "used_ssbb": len(used_ssbb),
+                "used_cev": len(used_cev),
+                "units": len(units),
+            },
+            "subject": {"id": subject.id, "name": subject.name},
+        }
+    )
+
+
+@login_required
+@require_GET
+def curriculum_codes(request):
+    subject_id = (request.GET.get("subject_id") or "").strip()
+    if not subject_id:
+        return JsonResponse({"ok": False, "error": "Falta subject_id."}, status=400)
+
+    subjects_qs = (
+        Subject.objects
+        .filter(usersubjectaccess__user=request.user, is_active=True)
+        .distinct()
+    )
+    subject = subjects_qs.filter(id=subject_id).first()
+    if subject is None:
+        return JsonResponse({"ok": False, "error": "Asignatura no válida o sin acceso."}, status=404)
+
+    data = cargar_datos(subject.dataset_path)
+    df = build_codigos_df(data.ssbb_df, data.ce_df, data.cev_df, data.do_df)
+    df_all = _sort_df_by_codigo_natural(df)
+
+    ssbb = []
+    cev = []
+
+    for _, row in df_all.iterrows():
+        t = str(row["Tipo"])
+        item = {"code": str(row["Código"]), "label": str(row["Etiqueta"])}
+        if t == "SSBB":
+            ssbb.append(item)
+        elif t == "CEv":
+            cev.append(item)
+
+    return JsonResponse({"ok": True, "ssbb": ssbb, "cev": cev})

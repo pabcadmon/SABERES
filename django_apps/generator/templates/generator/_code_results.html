@@ -14,7 +14,7 @@
           {% for col_items in groups_cols.SSBB %}
             <div class="type-col">
               {% for r in col_items %}
-                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-ssbb" %}
+                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-ssbb" mode=mode %}
               {% endfor %}
             </div>
           {% endfor %}
@@ -22,14 +22,14 @@
       </div>
     {% endif %}
 
-    {% if groups_cols.CE %}
+    {% if mode != "curriculum" and groups_cols.CE %}
       <div class="type-block type-ce">
         <div class="type-header">CE</div>
         <div class="type-cols">
           {% for col_items in groups_cols.CE %}
             <div class="type-col">
               {% for r in col_items %}
-                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-ce" %}
+                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-ce" mode=mode %}
               {% endfor %}
             </div>
           {% endfor %}
@@ -44,7 +44,7 @@
           {% for col_items in groups_cols.CEv %}
             <div class="type-col">
               {% for r in col_items %}
-                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-cev" %}
+                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-cev" mode=mode %}
               {% endfor %}
             </div>
           {% endfor %}
@@ -52,14 +52,14 @@
       </div>
     {% endif %}
 
-    {% if groups_cols.DO %}
+    {% if mode != "curriculum" and groups_cols.DO %}
       <div class="type-block type-do">
         <div class="type-header">DO</div>
         <div class="type-cols">
           {% for col_items in groups_cols.DO %}
             <div class="type-col">
               {% for r in col_items %}
-                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-do" %}
+                {% include "generator/_code_button.html" with r=r selected_codes=selected_codes type_class="type-do" mode=mode %}
               {% endfor %}
             </div>
           {% endfor %}

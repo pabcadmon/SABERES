@@ -15,4 +15,7 @@ urlpatterns = [
     path("tables/search/", views.tables_search, name="tables_search"),
     path("tables/selected/add/", views.tables_selected_add, name="tables_selected_add"),
     path("tables/selected/remove/", views.tables_selected_remove, name="tables_selected_remove"),
+    path("curriculum/", views.curriculum_builder, name="curriculum_builder"),
+    path("curriculum/analyze/", views.curriculum_analyze, name="curriculum_analyze"),
+    path("curriculum/codes/", views.curriculum_codes, name="curriculum_codes"),
 ]

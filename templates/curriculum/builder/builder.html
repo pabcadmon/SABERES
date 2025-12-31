@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="curriculum-page">
+
+  <h1 style="margin: 0 0 12px 0;">Generar Curriculum</h1>
+
+  <!-- ASIGNATURA -->
+  <div class="card" style="margin-bottom:14px;">
+    <label style="font-size:12px; color:#666; margin-bottom:6px;">Asignatura</label>
+    <select id="subjectSelect" style="min-width:320px;">
+      <option value="">Selecciona…</option>
+      {% for s in subjects %}
+        <option value="{{ s.id }}">{{ s.name }}</option>
+      {% endfor %}
+    </select>
+    <div id="subjectHint" style="margin-top:8px; color:#666;">
+      Selecciona una asignatura para empezar.
+    </div>
+  </div>
+
+  <!-- GRID PRINCIPAL -->
+  <div class="grid"
+       style="display:grid;
+              grid-template-columns:minmax(360px,1.1fr) minmax(280px,0.9fr);
+              gap:14px;">
+
+    <!-- IZQUIERDA: CÓDIGOS -->
+    <div class="card">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+        <h2 style="margin:0; font-size:16px;">Saberes y Criterios</h2>
+        <span id="leftStatus" style="font-size:12px; color:#666;"></span>
+      </div>
+
+      <div id="leftLocked" style="color:#666;">
+        Crea una unidad didáctica y selecciónala para ver los saberes básicos y criterios.
+      </div>
+
+      <div id="leftPane" style="display:none;">
+        <div style="margin-bottom:10px; color:#666;">
+          Añadiendo a: <b id="activeUnitName"></b>
+        </div>
+
+        <!-- Scroll vertical -->
+        <div id="leftCodes"
+             style="max-height:560px; overflow-y:auto; overflow-x:hidden;">
+          <!-- Scroll horizontal (ANTI-SHRINK) -->
+          <div class="codes-scroll">
+            <div style="color:#666;">Cargando…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DERECHA: UNIDADES -->
+    <div class="card">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <h2 style="margin:0; font-size:16px;">Unidades didácticas</h2>
+        <div style="margin-left:auto; display:flex; gap:8px;">
+          <button id="createUnitBtn" type="button">Crear unidad</button>
+          <button id="analyzeBtn" type="button">Analizar</button>
+        </div>
+      </div>
+
+      <div id="rightHint" style="margin-top:10px; color:#666;">
+        Crear unidades para comenzar.
+      </div>
+
+      <div id="unitsCards"
+           style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+      </div>
+
+      <!-- ANÁLISIS -->
+      <div id="analysisBox"
+           style="margin-top:12px; display:none; border-top:1px solid #eee; padding-top:12px;">
+        <div style="font-weight:600; margin-bottom:8px;">Faltan por cubrir</div>
+        <div id="analysisSummary" style="color:#666; margin-bottom:10px;"></div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <div style="font-weight:600; font-size:13px; margin-bottom:6px;">
+              SSBB faltantes
+            </div>
+            <div id="missingSsbb"
+                 style="max-height:180px; overflow:auto; border:1px solid #eee; border-radius:10px; padding:8px;">
+            </div>
+          </div>
+          <div>
+            <div style="font-weight:600; font-size:13px; margin-bottom:6px;">
+              CEv faltantes
+            </div>
+            <div id="missingCev"
+                 style="max-height:180px; overflow:auto; border:1px solid #eee; border-radius:10px; padding:8px;">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+
+  var state = {
+    subjectId: "",
+    units: [],
+    activeUnitId: null
+  };
+
+  function qs(id){ return document.getElementById(id); }
+
+  function csrfToken(){
+    var m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : "";
+  }
+
+  function uid(){
+    return "u_" + Math.random().toString(16).slice(2);
+  }
+
+  function setLeftLocked(locked){
+    qs("leftLocked").style.display = locked ? "block" : "none";
+    qs("leftPane").style.display   = locked ? "none"  : "block";
+    document.body.classList.toggle("curriculum-left-open", !locked);
+  }
+
+  function activeUnit(){
+    return state.units.find(u => u.id === state.activeUnitId) || null;
+  }
+
+  function setActiveUnit(id){
+    state.activeUnitId = id;
+    var u = activeUnit();
+    if(!u){
+      setLeftLocked(true);
+      return;
+    }
+    qs("activeUnitName").textContent = u.name || "Sin nombre";
+    setLeftLocked(false);
+    loadLeftCodes();
+    renderUnits();
+  }
+
+  function renderUnits(){
+    var box = qs("unitsCards");
+    box.innerHTML = "";
+    qs("rightHint").style.display = state.units.length ? "none" : "block";
+
+    state.units.forEach(u => {
+      var card = document.createElement("div");
+      card.className = "card";
+      card.style.padding = "10px";
+
+      var top = document.createElement("div");
+      top.style.display = "flex";
+      top.style.gap = "8px";
+
+      var input = document.createElement("input");
+      input.value = u.name;
+      input.placeholder = "Nombre de la unidad";
+      input.style.flex = "1";
+      input.oninput = e => {
+        u.name = e.target.value;
+        if(u.id === state.activeUnitId){
+          qs("activeUnitName").textContent = u.name || "Sin nombre";
+        }
+      };
+
+      var btn = document.createElement("button");
+      btn.textContent = (u.id === state.activeUnitId) ? "Seleccionada" : "Seleccionar";
+      btn.disabled = (u.id === state.activeUnitId);
+      btn.onclick = () => setActiveUnit(u.id);
+
+      top.append(input, btn);
+      card.appendChild(top);
+      box.appendChild(card);
+    });
+  }
+
+  async function loadLeftCodes(){
+    var u = activeUnit();
+    if(!u || !state.subjectId) return;
+
+    var fd = new FormData();
+    fd.append("subject_id", state.subjectId);
+    fd.append("mode", "curriculum");
+    u.ssbb.forEach(c => fd.append("codes", c));
+    u.cev.forEach(c => fd.append("codes", c));
+
+    qs("leftStatus").textContent = "Cargando…";
+
+    var res = await fetch("{% url 'generator:tables_search' %}", {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken() },
+      body: fd
+    });
+
+    qs("leftStatus").textContent = "";
+
+    var html = await res.text();
+    var wrap = qs("leftCodes").querySelector(".codes-scroll");
+    wrap.innerHTML = html;
+  }
+
+  function createUnit(){
+    if(!state.subjectId) return;
+    var u = { id: uid(), name:"", ssbb:[], cev:[] };
+    state.units.push(u);
+    setActiveUnit(u.id);
+  }
+
+  qs("subjectSelect").onchange = () => {
+    state.subjectId = qs("subjectSelect").value;
+    state.units = [];
+    state.activeUnitId = null;
+    setLeftLocked(true);
+    renderUnits();
+  };
+
+  qs("createUnitBtn").onclick = createUnit;
+
+  window.CurriculumUI = {
+    addFromButton(btn){
+      var u = activeUnit();
+      if(!u) return;
+      var code = btn.dataset.code;
+      var tipo = btn.dataset.tipo === "SSBB" ? u.ssbb : u.cev;
+      var i = tipo.indexOf(code);
+      i === -1 ? tipo.push(code) : tipo.splice(i,1);
+      renderUnits();
+      loadLeftCodes();
+    }
+  };
+
+})();
+</script>
+
+{% endblock %}

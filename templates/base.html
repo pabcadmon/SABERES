@@ -9,45 +9,45 @@
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 </head>
 
-<body class="page">
+<body>
+  <div class="page">
 
-  <header class="navbar">
-    <div class="navbar-inner">
-      <a class="navbrand" href="{% url 'home' %}">Saberes Multi</a>
+    <header class="navbar">
+      <div class="navbar-inner">
+        <a class="navbrand" href="{% url 'home' %}">Saberes Multi</a>
 
-      <nav class="navlinks">
-        <a href="{% url 'generator:tables' %}">Generar tablas</a>
-        <a href="{% url 'generator:my_exports' %}">Mis exportaciones</a>
-      </nav>
+        <nav class="navlinks">
+          <a href="{% url 'generator:tables' %}">Generar tablas</a>
+          <a href="{% url 'generator:my_exports' %}">Mis exportaciones</a>
+          <a href="{% url 'generator:curriculum_builder' %}">Generar Curriculum</a>
+        </nav>
 
-      <div class="nav-user">
-        {% if user.is_authenticated %}
-          <span class="username">Hola, {{ user.username }}</span>
-          <a href="{% url 'accounts:me' %}">Mi cuenta</a>
-
-          <form method="post" action="{% url 'logout' %}" style="display:inline;">
-            {% csrf_token %}
-            <button class="btn btn-small btn-ghost" type="submit">Logout</button>
-          </form>
-        {% else %}
-          <a class="btn btn-small btn-primary" href="{% url 'login' %}">Login</a>
-        {% endif %}
+        <div class="nav-user">
+          {% if user.is_authenticated %}
+            <span class="username">Hola, {{ user.username }}</span>
+            <a href="{% url 'accounts:me' %}">Mi cuenta</a>
+            <form method="post" action="{% url 'logout' %}" style="display:inline;">
+              {% csrf_token %}
+              <button class="btn btn-small btn-ghost" type="submit">Logout</button>
+            </form>
+          {% else %}
+            <a class="btn btn-small btn-primary" href="{% url 'login' %}">Login</a>
+          {% endif %}
+        </div>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <main class="container">
-    {% block content %}{% endblock %}
-  </main>
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
 
   <script>
     document.body.addEventListener('htmx:configRequest', function (event) {
       var match = document.cookie.match(/csrftoken=([^;]+)/);
-      if (match) {
-        event.detail.headers["X-CSRFToken"] = match[1];
-      }
+      if (match) event.detail.headers["X-CSRFToken"] = match[1];
     });
   </script>
-
 </body>
 </html>
