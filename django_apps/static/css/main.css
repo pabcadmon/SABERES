@@ -352,3 +352,26 @@ main.container{
   margin: 0 auto;
 }
 
+/* ===== code-tag pills (tables right) ===== */
+.code-tag{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid #ddd;
+  background:#fff;
+  font-size:12px;
+  margin:2px 4px 2px 0;
+  white-space:nowrap;
+}
+
+.code-tag.type-ssbb{ border-color:#c44; }
+.code-tag.type-ce{ border-color:#cc4; }
+.code-tag.type-cev{ border-color:#3a3; }
+.code-tag.type-do{ border-color:#36c; }
+
+.code-tag.is-selected{ font-weight:800; }
+
+.code-tag.type-ssbb.is-selected{ background:#c44; color:#fff; }
+.code-tag.type-ce.is-selected{ background:#cc4; color:#222; }
+.code-tag.type-cev.is-selected{ background:#3a3; color:#fff; }
+.code-tag.type-do.is-selected{ background:#36c; color:#fff; }
