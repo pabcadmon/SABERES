@@ -24,3 +24,15 @@ class ExportJob(models.Model):
 
     def __str__(self) -> str:
         return f"{self.created_at:%Y-%m-%d %H:%M} {self.user.username} {self.subject.code} {self.status}"
+
+
+class CurriculumPlan(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.PROTECT, related_name="curriculums")
+    name = models.CharField(max_length=120, default="Curriculum")
+    units = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"{self.user.username} {self.subject.code} {self.name}"

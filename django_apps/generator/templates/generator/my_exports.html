@@ -27,15 +27,6 @@
         </select>
       </div>
 
-      <div class="field">
-        <label>Estado</label>
-        <select name="status">
-          <option value="">(todos)</option>
-          <option value="SUCCESS" {% if selected_status == "SUCCESS" %}selected{% endif %}>SUCCESS</option>
-          <option value="FAILED" {% if selected_status == "FAILED" %}selected{% endif %}>FAILED</option>
-        </select>
-      </div>
-
       <div class="field" style="min-width: 140px;">
         <button class="btn btn-primary" type="submit">Filtrar</button>
       </div>
@@ -55,9 +46,7 @@
             <tr>
               <th>Fecha</th>
               <th>Asignatura</th>
-              <th>Estado</th>
               <th>Códigos</th>
-              <th>Error</th>
               <th>Descarga</th>
             </tr>
           </thead>
@@ -66,17 +55,7 @@
               <tr>
                 <td>{{ job.created_at|date:"Y-m-d H:i" }}</td>
                 <td>{{ job.subject.name }}</td>
-                <td>
-                  {% if job.status == "SUCCESS" %}
-                    <span class="badge success">SUCCESS</span>
-                  {% elif job.status == "FAILED" %}
-                    <span class="badge failed">FAILED</span>
-                  {% else %}
-                    <span class="badge">{{ job.status }}</span>
-                  {% endif %}
-                </td>
                 <td><pre style="margin:0; white-space:pre-wrap;">{{ job.codes_raw }}</pre></td>
-                <td>{{ job.error_message }}</td>
                 <td>
                   {% if job.status == "SUCCESS" and job.output_file %}
                     <a class="btn btn-small" href="{% url 'generator:download_export' job.id %}">Descargar</a>

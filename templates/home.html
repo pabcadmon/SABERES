@@ -7,10 +7,13 @@
     <div class="card-header">
       <div>
         <h1 class="h1">Saberes Multi</h1>
-        <p class="p-muted">
-          Explora y genera de forma interactiva tablas de relaciones curriculares
-          entre saberes básicos, competencias, criterios y descriptores.
-        </p>
+        <ul style="margin:16px 0; padding-left: 20px; font-size: 15px; color: #111;">
+          <li><strong>Busca códigos oficiales</strong> y crea relaciones curriculares en segundos.</li>
+          <li><strong>Genera tablas claras</strong> con descripciones y vistas comparativas.</li>
+          <li><strong>Exporta a Excel</strong> listas y relaciones listas para compartir.</li>
+          <li><strong>Organiza tu curriculum</strong> por unidades con alertas de cobertura.</li>
+          <li><strong>Detecta relaciones incompletas</strong> para afinar tu plan.</li>
+        </ul>
       </div>
     </div>
 
@@ -23,14 +26,17 @@
 
       <div class="row">
         <a class="btn btn-primary" href="{% url 'generator:tables' %}">📊 Generar tablas</a>
-        <a class="btn" href="{% url 'generator:my_exports' %}">🗂️ Mis exportaciones</a>
+        <a class="btn" href="{% url 'generator:curriculum_builder' %}">🗂️ Generar curriculum</a>
         <a class="btn btn-ghost" href="{% url 'accounts:me' %}">👤 Mi cuenta</a>
       </div>
     {% else %}
       <p style="margin:0 0 12px 0;">
-        Para generar tablas curriculares, inicia sesión.
+        Para generar tablas curriculares, inicia sesion.
       </p>
-      <a class="btn btn-primary" href="{% url 'login' %}">🔐 Login</a>
+      <div class="row">
+        <a class="btn btn-primary" href="{% url 'login' %}">Login</a>
+        <a class="btn" href="{% url 'accounts:signup' %}">Crear cuenta</a>
+      </div>
     {% endif %}
   </div>
 {% endblock %}

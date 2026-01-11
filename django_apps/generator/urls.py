@@ -16,6 +16,10 @@ urlpatterns = [
     path("tables/selected/add/", views.tables_selected_add, name="tables_selected_add"),
     path("tables/selected/remove/", views.tables_selected_remove, name="tables_selected_remove"),
     path("curriculum/", views.curriculum_builder, name="curriculum_builder"),
+    path("curriculum/plans/", views.curriculum_plans, name="curriculum_plans"),
+    path("curriculum/plans/save/", views.curriculum_plan_save, name="curriculum_plan_save"),
+    path("curriculum/plans/<int:plan_id>/", views.curriculum_plan_detail, name="curriculum_plan_detail"),
+    path("curriculum/plans/<int:plan_id>/delete/", views.curriculum_plan_delete, name="curriculum_plan_delete"),
     path("curriculum/analyze/", views.curriculum_analyze, name="curriculum_analyze"),
     path("curriculum/codes/", views.curriculum_codes, name="curriculum_codes"),
 ]

@@ -17,10 +17,13 @@
         <a class="navbrand" href="{% url 'home' %}">Saberes Multi</a>
 
         <nav class="navlinks">
-          <a href="{% url 'generator:tables' %}">Generar tablas</a>
-          <a href="{% url 'generator:my_exports' %}">Mis exportaciones</a>
-          <a href="{% url 'generator:curriculum_builder' %}">Generar Curriculum</a>
+          <a class="nav-cta" href="{% url 'generator:tables' %}">Generar tablas</a>
+          <a class="nav-cta" href="{% url 'generator:curriculum_builder' %}">Generar Curriculum</a>
         </nav>
+
+        {% if demo_mode %}
+          <span class="demo-pill">DEMO</span>
+        {% endif %}
 
         <div class="nav-user">
           {% if user.is_authenticated %}
@@ -48,6 +51,316 @@
       var match = document.cookie.match(/csrftoken=([^;]+)/);
       if (match) event.detail.headers["X-CSRFToken"] = match[1];
     });
+  </script>
+  <script>
+    (function(){
+      if (window.CodeResultsColumns) return;
+
+      var state = new WeakMap();
+
+      function getState(block){
+        var info = state.get(block);
+        if (!info){
+          info = { items: [], cols: 0 };
+          state.set(block, info);
+        }
+        return info;
+      }
+
+      function getItems(block){
+        var items = Array.from(block.querySelectorAll(".code-pill"));
+        var info = getState(block);
+        info.items = items;
+        return items;
+      }
+
+      function setColumns(block, count){
+        var items = getItems(block);
+        if (!items.length) return;
+
+        var cols = Math.max(1, Math.min(count, items.length));
+        var info = getState(block);
+        if (info.cols === cols && block.querySelectorAll(".type-col").length === cols){
+          return;
+        }
+
+        var container = block.querySelector(".type-cols");
+        if (!container) return;
+
+        container.innerHTML = "";
+        var perCol = Math.ceil(items.length / cols);
+        for (var i = 0; i < cols; i++){
+          var col = document.createElement("div");
+          col.className = "type-col";
+          var start = i * perCol;
+          var end = start + perCol;
+          items.slice(start, end).forEach(function(item){
+            col.appendChild(item);
+          });
+          container.appendChild(col);
+        }
+        info.cols = cols;
+      }
+
+      function findScroller(root){
+        if (!root) return null;
+        if (root.closest){
+          var found = root.closest("#code-results, .codes-scroll");
+          if (found) return found;
+        }
+        return root.querySelector ? (root.querySelector("#code-results, .codes-scroll") || root) : root;
+      }
+
+      function hasHScroll(el){
+        return el && (el.scrollWidth - el.clientWidth) > 2;
+      }
+
+      function spaceAvailable(el){
+        return el ? (el.clientWidth - el.scrollWidth) : 0;
+      }
+
+      function layout(root){
+        var scope = root || document;
+        var blocks = Array.from(scope.querySelectorAll(".type-block"));
+        if (!blocks.length) return;
+
+        var scroller = findScroller(scope);
+        if (!scroller) return;
+
+        blocks.forEach(function(block){
+          setColumns(block, Math.min(3, getItems(block).length));
+        });
+
+        var guard = 0;
+        while (hasHScroll(scroller) && guard < 20){
+          var candidates = blocks.filter(function(block){
+            return getState(block).cols > 1;
+          });
+          if (!candidates.length) break;
+          candidates.sort(function(a, b){ return a.offsetWidth - b.offsetWidth; });
+          var pick = candidates[0];
+          setColumns(pick, getState(pick).cols - 1);
+          guard++;
+        }
+
+        guard = 0;
+        while (!hasHScroll(scroller) && spaceAvailable(scroller) > 24 && guard < 20){
+          var grow = blocks.filter(function(block){
+            return getState(block).cols < getItems(block).length;
+          });
+          if (!grow.length) break;
+          grow.sort(function(a, b){ return b.offsetHeight - a.offsetHeight; });
+          var pickGrow = grow[0];
+          setColumns(pickGrow, getState(pickGrow).cols + 1);
+          if (hasHScroll(scroller)){
+            setColumns(pickGrow, getState(pickGrow).cols - 1);
+            break;
+          }
+          guard++;
+        }
+      }
+
+      window.CodeResultsColumns = { layout: layout };
+
+      var resizeTimer = null;
+      window.addEventListener("resize", function(){
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function(){ layout(); }, 120);
+      });
+
+      document.addEventListener("DOMContentLoaded", function(){ layout(); });
+
+      document.body.addEventListener("htmx:afterSwap", function(event){
+        var target = event.target;
+        if (!target) return;
+        if (target.id === "code-results" || target.querySelector(".type-block") || target.classList.contains("type-block")){
+          layout(target);
+        }
+      });
+    })();
+  </script>
+  <script>
+    (function(){
+      if (window.RelationsTable) return;
+
+      function getSelectedCodesSet(container){
+        var scope = container || document;
+        var el = scope.querySelector ? scope.querySelector('#selected-codes-json') : null;
+        if (!el && scope.closest) {
+          var card = scope.closest('.table-card');
+          if (card) {
+            el = card.querySelector('#selected-codes-json');
+          }
+        }
+        if (!el) return new Set();
+        var data = [];
+        try {
+          data = JSON.parse(el.textContent || '[]');
+        } catch (err) {
+          data = [];
+        }
+        return new Set(
+          data.map(function(code){
+            return String(code || '').trim().replace(/\.$/, '');
+          }).filter(Boolean)
+        );
+      }
+
+      function extractCodes(text){
+        var matches = String(text || '').match(/[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)+/g);
+        if (!matches) return [];
+        return matches.map(function(code){
+          return code.trim().replace(/\.$/, '');
+        });
+      }
+
+      function isVisible(el){
+        if (!el) return false;
+        if (!el.isConnected) return true;
+        var style = window.getComputedStyle ? window.getComputedStyle(el) : null;
+        if (style && style.display === "none") return false;
+        return el.offsetParent !== null || (style && style.position === "fixed");
+      }
+
+      function markErrors(container){
+        var scope = container || document;
+        var selectedSet = getSelectedCodesSet(scope);
+        var tables = scope.querySelectorAll('.current-relations-table');
+        tables.forEach(function(table){
+          var scopeMarker = table.closest('[data-relations-scope="curriculum"]');
+          if (!scopeMarker) return;
+          var wrapper = table.closest('.table-relations-content');
+          if (wrapper && !isVisible(wrapper)) return;
+          var headerCells = Array.from(table.querySelectorAll('thead th'));
+          var headers = headerCells.map(function(th){
+            return (th.textContent || '').trim().toLowerCase();
+          });
+          if (headers.length >= 2 && headers[0].indexOf("elemento") !== -1 && headers[1].indexOf("relacion") !== -1) {
+            var rowsSel = table.querySelectorAll('tbody tr');
+            rowsSel.forEach(function(row){
+              var cells = row.querySelectorAll('td');
+              var selectedInRelated = cells[1] && cells[1].querySelector('.code-tag.is-selected');
+              row.classList.toggle('relations-error', !selectedInRelated);
+            });
+            return;
+          }
+          var ssbbIdx = headers.findIndex(function(h){
+            return h === 'ssbb' || h === 'sb' || h.indexOf('ssbb') !== -1;
+          });
+          var cevIdx = headers.findIndex(function(h){
+            return h === 'cev' || h.indexOf('cev') !== -1;
+          });
+          if (ssbbIdx === -1 || cevIdx === -1) return;
+          var firstHeader = headers[0] || "";
+          var primaryType = firstHeader.indexOf("cev") !== -1 ? "cev" : "ssbb";
+          var rows = table.querySelectorAll('tbody tr');
+          rows.forEach(function(row){
+            var cells = row.querySelectorAll('td');
+            var ssbbCodes = extractCodes(cells[ssbbIdx] ? cells[ssbbIdx].textContent : '');
+            var cevCodes = extractCodes(cells[cevIdx] ? cells[cevIdx].textContent : '');
+            var selectedSsbbInRow = ssbbCodes.filter(function(code){ return selectedSet.has(code); });
+            var selectedCevInRow = cevCodes.filter(function(code){ return selectedSet.has(code); });
+            var hasSelectedRelatedSsbb = selectedSsbbInRow.length > 0;
+            var hasSelectedRelatedCev = selectedCevInRow.length > 0;
+
+            var hasError = false;
+            if (primaryType === "ssbb") {
+              if (hasSelectedRelatedSsbb && !hasSelectedRelatedCev) {
+                hasError = true;
+              }
+            } else {
+              if (hasSelectedRelatedCev && !hasSelectedRelatedSsbb) {
+                hasError = true;
+              }
+            }
+            row.classList.toggle('relations-error', hasError);
+          });
+        });
+      }
+
+      window.RelationsTable = { mark: markErrors };
+
+      document.body.addEventListener('htmx:afterSwap', function(event){
+        var target = event.target;
+        if (!target) return;
+        if (target.id === 'tables-dynamic' || target.querySelector('.current-relations-table')) {
+          markErrors(target);
+        }
+      });
+    })();
+  </script>
+  <script>
+    (function(){
+      function postTableSelection(tag){
+        var container = document.getElementById("tables-dynamic");
+        if (!container) return;
+        var addUrl = container.dataset.addUrl;
+        var removeUrl = container.dataset.removeUrl;
+        if (!addUrl || !removeUrl) return;
+
+        var isSelected = tag.classList.contains("is-selected");
+        var url = isSelected ? removeUrl : addUrl;
+        var code = tag.dataset.code;
+        if (!code) return;
+
+        var form = document.getElementById("tables-form");
+        var subject = form ? form.querySelector('select[name="subject_id"]') : null;
+        var codes = Array.from(document.querySelectorAll('#selected-codes input[name="codes"]'))
+          .map(function(input){ return input.value; });
+
+        var fd = new FormData();
+        if (subject && subject.value){
+          fd.append("subject_id", subject.value);
+        }
+        codes.forEach(function(c){ fd.append("codes", c); });
+        fd.append("code", code);
+
+        fetch(url, {
+          method: "POST",
+          headers: { "X-CSRFToken": document.cookie.match(/csrftoken=([^;]+)/)?.[1] || "" },
+          body: fd
+        })
+          .then(function(res){ return res.text(); })
+          .then(function(html){
+            var target = document.getElementById("selected-codes");
+            if (target){
+              target.innerHTML = html;
+              if (window.htmx && window.htmx.process){
+                window.htmx.process(target);
+              }
+            }
+            document.body.dispatchEvent(new Event("codesChanged"));
+          })
+          .catch(function(){});
+      }
+
+      function postCurriculumSelection(tag){
+        if (!window.CurriculumUI || !tag.dataset.code) return;
+        var tipo = "CEv";
+        if (tag.classList.contains("type-ssbb")) tipo = "SSBB";
+        if (tag.classList.contains("type-cev")) tipo = "CEv";
+        var fakeBtn = { dataset: { code: tag.dataset.code, tipo: tipo } };
+        window.CurriculumUI.addFromButton(fakeBtn);
+      }
+
+      document.addEventListener("click", function(event){
+        var tag = event.target.closest(".code-tag[data-code]");
+        if (!tag) return;
+
+        var inTables = tag.closest("#tables-dynamic");
+        var inCurriculum = tag.closest("#curriculumGrid") && tag.closest(".current-relations-table");
+
+        if (inTables){
+          event.preventDefault();
+          postTableSelection(tag);
+          return;
+        }
+        if (inCurriculum){
+          event.preventDefault();
+          postCurriculumSelection(tag);
+        }
+      });
+    })();
   </script>
 </body>
 </html>

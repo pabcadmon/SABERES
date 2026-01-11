@@ -8,23 +8,34 @@
 
   <!-- ASIGNATURA -->
   <div class="card" style="margin-bottom:14px;">
-    <label style="font-size:12px; color:#666; margin-bottom:6px;">Asignatura</label>
-    <select id="subjectSelect" style="min-width:320px;">
-      <option value="">Selecciona…</option>
-      {% for s in subjects %}
-        <option value="{{ s.id }}">{{ s.name }}</option>
-      {% endfor %}
-    </select>
-    <div id="subjectHint" style="margin-top:8px; color:#666;">
-      Selecciona una asignatura para empezar.
+    <div style="display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap;">
+      <div style="min-width:260px;">
+        <label style="font-size:12px; color:#666; margin-bottom:6px;">Asignatura</label>
+        <select id="subjectSelect" style="min-width:320px;">
+          <option value="">Selecciona...</option>
+          {% for s in subjects %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="min-width:280px;">
+        <label style="font-size:12px; color:#666; margin-bottom:6px;">Curriculum</label>
+        <div id="curriculumList"
+             style="display:flex; flex-wrap:wrap; gap:6px; max-width:520px;">
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
+          <button id="createCurriculumBtn" type="button">Nuevo</button>
+          <button id="deleteCurriculumBtn" type="button">Borrar</button>
+          <button id="renameCurriculumBtn" type="button">Cambiar nombre</button>
+        </div>
+        <div id="curriculumStatus" style="display:none;"></div>
+      </div>
     </div>
   </div>
 
   <!-- GRID PRINCIPAL -->
-  <div class="grid"
-       style="display:grid;
-              grid-template-columns:minmax(360px,1.1fr) minmax(280px,0.9fr);
-              gap:14px;">
+  <div id="curriculumGrid" class="curriculum-grid">
 
     <!-- IZQUIERDA: CÓDIGOS -->
     <div class="card">
@@ -71,44 +82,98 @@
            style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
       </div>
 
-      <!-- ANÁLISIS -->
-      <div id="analysisBox"
-           style="margin-top:12px; display:none; border-top:1px solid #eee; padding-top:12px;">
-        <div style="font-weight:600; margin-bottom:8px;">Faltan por cubrir</div>
-        <div id="analysisSummary" style="color:#666; margin-bottom:10px;"></div>
+      </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div>
-            <div style="font-weight:600; font-size:13px; margin-bottom:6px;">
-              SSBB faltantes
-            </div>
-            <div id="missingSsbb"
-                 style="max-height:180px; overflow:auto; border:1px solid #eee; border-radius:10px; padding:8px;">
-            </div>
-          </div>
-          <div>
-            <div style="font-weight:600; font-size:13px; margin-bottom:6px;">
-              CEv faltantes
-            </div>
-            <div id="missingCev"
-                 style="max-height:180px; overflow:auto; border:1px solid #eee; border-radius:10px; padding:8px;">
-            </div>
-          </div>
+    <!-- RIGHT: ANALISIS -->
+    <div id="analysisPane" class="card">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <h2 id="analysisTitle" style="margin:0; font-size:16px;">Analisis: Curriculum</h2>
+        <button id="analysisClose" type="button" style="margin-left:auto;">X</button>
+      </div>
+
+      <div id="analysisBox" style="margin-top:12px; display:none;">
+        <div id="analysisSummary" class="analysis-summary" style="display:none;"></div>
+        <div id="analysisStatus" class="analysis-status" style="display:none;"></div>
+        <div id="analysisErrors" class="analysis-errors" style="display:none;"></div>
+
+        <div class="table-scroll" style="margin-bottom:12px;">
+          <table class="nice-table">
+            <thead>
+              <tr>
+                <th colspan="2">Elementos usados</th>
+              </tr>
+              <tr>
+                <th>SSBB</th>
+                <th>CE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div id="usedSsbb" class="code-tag-list"></div></td>
+                <td><div id="usedCev" class="code-tag-list"></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-scroll">
+          <table class="nice-table">
+            <thead>
+              <tr>
+                <th colspan="2">Elementos faltantes</th>
+              </tr>
+              <tr>
+                <th>SSBB</th>
+                <th>CE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div id="missingSsbb" class="code-tag-list"></div></td>
+                <td><div id="missingCev" class="code-tag-list"></div></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
 
+
+  </div>
+</div>
+
+<div id="curriculumModal" class="modal" style="display:none;">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div id="curriculumModalTitle" class="modal-title">Nuevo curriculum</div>
+    <label class="modal-label">Nombre</label>
+    <input id="curriculumModalName" class="input" placeholder="Nombre del curriculum" />
+    <div class="modal-actions">
+      <button id="curriculumModalCancel" type="button">Cancelar</button>
+      <button id="curriculumModalCreate" type="button" class="btn-primary">Crear</button>
+    </div>
   </div>
 </div>
 
 <script>
 (function(){
 
+  var isDemo = {{ demo_mode|yesno:"true,false" }};
+  var demoSubjectId = "{{ demo_subject_id }}";
+  var DEMO_MAX_UNITS = 3;
+  var DEMO_MAX_CODES = 5;
+
   var state = {
     subjectId: "",
     units: [],
-    activeUnitId: null
+    activeUnitId: null,
+    curriculumId: null,
+    curriculumName: "",
+    isHydrating: false,
+    saveTimer: null
   };
+  var relationsState = {};
+  var relationsRefreshPromise = null;
 
   function qs(id){ return document.getElementById(id); }
 
@@ -121,10 +186,101 @@
     return "u_" + Math.random().toString(16).slice(2);
   }
 
+  var storage = {
+    subjectKey: "curriculum.subjectId",
+    planKeyPrefix: "curriculum.planId."
+  };
+
+  function getStoredSubjectId(){
+    try { return localStorage.getItem(storage.subjectKey) || ""; } catch(e){ return ""; }
+  }
+
+  function setStoredSubjectId(id){
+    try { localStorage.setItem(storage.subjectKey, id || ""); } catch(e){}
+  }
+
+  function getStoredPlanId(subjectId){
+    if(!subjectId) return "";
+    try { return localStorage.getItem(storage.planKeyPrefix + subjectId) || ""; } catch(e){ return ""; }
+  }
+
+  function setStoredPlanId(subjectId, planId){
+    if(!subjectId) return;
+    try { localStorage.setItem(storage.planKeyPrefix + subjectId, planId || ""); } catch(e){}
+  }
+
   function setLeftLocked(locked){
     qs("leftLocked").style.display = locked ? "block" : "none";
     qs("leftPane").style.display   = locked ? "none"  : "block";
     document.body.classList.toggle("curriculum-left-open", !locked);
+  }
+
+  function showAnalysisPane(show){
+    var grid = qs("curriculumGrid");
+    if(show){
+      grid.classList.add("is-analysis");
+    } else {
+      grid.classList.remove("is-analysis");
+    }
+    if (window.CodeResultsColumns){
+      window.CodeResultsColumns.layout(qs("leftCodes"));
+    }
+  }
+
+  function setCurriculumStatus(text){
+    qs("curriculumStatus").textContent = text || "";
+  }
+
+  function updateAnalysisTitle(){
+    var u = activeUnit();
+    var name = u && u.name ? u.name : (state.curriculumName || "Curriculum");
+    qs("analysisTitle").textContent = "Analisis: " + name;
+  }
+
+  function renderCurriculumList(items){
+    var list = qs("curriculumList");
+    list.innerHTML = "";
+    if(!items || !items.length){
+      var empty = document.createElement("span");
+      empty.className = "small-muted";
+      empty.textContent = "Sin curriculums";
+      list.appendChild(empty);
+      return;
+    }
+
+    items.forEach(item => {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-small";
+      btn.dataset.id = item.id;
+      btn.textContent = item.name;
+      if(String(item.id) === String(state.curriculumId)){
+        btn.classList.add("btn-primary");
+      }
+      btn.onclick = async () => {
+        setStoredPlanId(state.subjectId, item.id);
+        setCurriculumStatus("Cargando...");
+        await loadCurriculum(item.id);
+        renderCurriculumList(items);
+      };
+      list.appendChild(btn);
+    });
+  }
+
+  function updateActiveCurriculumButtonName(name){
+    if(!state.curriculumId) return;
+    var list = qs("curriculumList");
+    var btn = list.querySelector("button[data-id='" + state.curriculumId + "']");
+    if(btn) btn.textContent = name;
+  }
+
+  function syncCurriculumControls(){
+    var hasSubject = !!state.subjectId;
+    var hasCurriculum = !!state.curriculumId;
+    qs("createCurriculumBtn").disabled = !hasSubject;
+    qs("deleteCurriculumBtn").disabled = !hasSubject || !hasCurriculum;
+    qs("renameCurriculumBtn").disabled = !hasSubject || !hasCurriculum;
+    qs("analyzeBtn").disabled = !hasSubject;
   }
 
   function activeUnit(){
@@ -142,6 +298,16 @@
     setLeftLocked(false);
     loadLeftCodes();
     renderUnits();
+    if (relationsState[id] && relationsState[id].open) {
+      var relBox = qs("unit-rel-" + id);
+      if (relBox) {
+        loadUnitRelations(u, relBox);
+      }
+    }
+    if(qs("curriculumGrid").classList.contains("is-analysis")){
+      analyzeCurriculum();
+    }
+    refreshRelationsErrors();
   }
 
   function renderUnits(){
@@ -150,8 +316,11 @@
     qs("rightHint").style.display = state.units.length ? "none" : "block";
 
     state.units.forEach(u => {
+      var relState = relationsState[u.id] || { open: false, html: "", hasErrors: false };
+      relationsState[u.id] = relState;
+      var isActive = (u.id === state.activeUnitId);
       var card = document.createElement("div");
-      card.className = "card";
+      card.className = "card unit-card" + (u.id === state.activeUnitId ? " is-active" : "");
       card.style.padding = "10px";
 
       var top = document.createElement("div");
@@ -167,6 +336,10 @@
         if(u.id === state.activeUnitId){
           qs("activeUnitName").textContent = u.name || "Sin nombre";
         }
+        scheduleSave();
+        if(qs("curriculumGrid").classList.contains("is-analysis")){
+          analyzeCurriculum();
+        }
       };
 
       var btn = document.createElement("button");
@@ -174,8 +347,120 @@
       btn.disabled = (u.id === state.activeUnitId);
       btn.onclick = () => setActiveUnit(u.id);
 
-      top.append(input, btn);
+      var delBtn = document.createElement("button");
+      delBtn.textContent = "Borrar";
+      delBtn.type = "button";
+      delBtn.onclick = function(){
+        if(!confirm("Borrar esta unidad?")) return;
+        state.units = state.units.filter(x => x.id !== u.id);
+        if(state.activeUnitId === u.id){
+          state.activeUnitId = state.units.length ? state.units[0].id : null;
+        }
+        renderUnits();
+        if(state.activeUnitId){
+          setActiveUnit(state.activeUnitId);
+        } else {
+          setLeftLocked(true);
+        }
+        scheduleSave();
+        refreshRelationsErrors();
+        if(qs("curriculumGrid").classList.contains("is-analysis")){
+          analyzeCurriculum();
+        }
+      };
+
+      top.append(input, btn, delBtn);
       card.appendChild(top);
+
+      var tableScroll = document.createElement("div");
+      tableScroll.className = "table-scroll";
+      tableScroll.style.marginTop = "10px";
+
+      var table = document.createElement("table");
+      table.className = "nice-table";
+
+      var thead = document.createElement("thead");
+      var headRow = document.createElement("tr");
+      var thSsbb = document.createElement("th");
+      thSsbb.textContent = "SSBB";
+      var thCe = document.createElement("th");
+      thCe.textContent = "CE";
+      headRow.append(thSsbb, thCe);
+      thead.appendChild(headRow);
+
+      var tbody = document.createElement("tbody");
+      var bodyRow = document.createElement("tr");
+
+      var tdSsbb = document.createElement("td");
+      var ssbbWrap = document.createElement("div");
+      ssbbWrap.className = "code-tag-list";
+      if (u.ssbb.length === 0) {
+        var emptySsbb = document.createElement("span");
+        emptySsbb.className = "small-muted";
+        emptySsbb.textContent = "Sin SSBB";
+        ssbbWrap.appendChild(emptySsbb);
+      } else {
+        u.ssbb.forEach(code => {
+          var tag = document.createElement("span");
+          tag.className = "code-tag type-ssbb" + (isActive ? " is-selected" : "");
+          tag.textContent = code;
+          ssbbWrap.appendChild(tag);
+        });
+      }
+      tdSsbb.appendChild(ssbbWrap);
+
+      var tdCe = document.createElement("td");
+      var ceWrap = document.createElement("div");
+      ceWrap.className = "code-tag-list";
+      if (u.cev.length === 0) {
+        var emptyCe = document.createElement("span");
+        emptyCe.className = "small-muted";
+        emptyCe.textContent = "Sin CE";
+        ceWrap.appendChild(emptyCe);
+      } else {
+        u.cev.forEach(code => {
+          var tag = document.createElement("span");
+          tag.className = "code-tag type-cev" + (isActive ? " is-selected" : "");
+          tag.textContent = code;
+          ceWrap.appendChild(tag);
+        });
+      }
+      tdCe.appendChild(ceWrap);
+
+      bodyRow.append(tdSsbb, tdCe);
+      tbody.appendChild(bodyRow);
+
+      table.append(thead, tbody);
+      tableScroll.appendChild(table);
+      card.appendChild(tableScroll);
+
+      var relWrap = document.createElement("div");
+      relWrap.style.marginTop = "8px";
+
+      var relBtn = document.createElement("button");
+      relBtn.type = "button";
+      relBtn.className = "btn-small";
+      relBtn.textContent = relState.open ? "v Relaciones" : "> Relaciones";
+
+      var relBox = document.createElement("div");
+      relBox.className = "table-scroll";
+      relBox.style.marginTop = "8px";
+      relBox.style.display = relState.open ? "block" : "none";
+      relBox.id = "unit-rel-" + u.id;
+      relBox.innerHTML = relState.html || '<div class="small-muted">Sin relaciones cargadas.</div>';
+
+      if (relState.hasErrors !== true) {
+        relState.hasErrors = false;
+      }
+
+      relBtn.onclick = function(){
+        relState.open = !relState.open;
+        setActiveUnit(u.id);
+      };
+
+      relWrap.append(relBtn, relBox);
+      card.appendChild(relWrap);
+      updateRelationsButton(u, relBox);
       box.appendChild(card);
     });
   }
@@ -203,24 +488,499 @@
     var html = await res.text();
     var wrap = qs("leftCodes").querySelector(".codes-scroll");
     wrap.innerHTML = html;
+    if (window.CodeResultsColumns){
+      window.CodeResultsColumns.layout(wrap);
+    }
+  }
+
+  async function loadUnitRelations(u, relBox){
+    if(!state.subjectId) return;
+
+    var codes = (u.ssbb || []).concat(u.cev || []);
+    if(!codes.length){
+      relBox.innerHTML = '<div class="small-muted">Selecciona codigos para ver relaciones.</div>';
+      relationsState[u.id].html = relBox.innerHTML;
+      relationsState[u.id].hasErrors = false;
+      updateRelationsButton(u, relBox);
+      return;
+    }
+
+    relBox.innerHTML = '<div class="small-muted">Cargando...</div>';
+
+    var fd = new FormData();
+    fd.append("subject_id", state.subjectId);
+    fd.append("only_table2", "1");
+    codes.forEach(c => fd.append("codes", c));
+
+    var res = await fetch("{% url 'generator:tables_render' %}", {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken() },
+      body: fd
+    });
+
+    var html = await res.text();
+    relBox.innerHTML = html;
+    relationsState[u.id].html = html;
+    if (window.RelationsTable){
+      window.RelationsTable.mark(relBox);
+    }
+    relationsState[u.id].hasErrors = !!relBox.querySelector('.relations-error');
+    updateRelationsButton(u, relBox);
+  }
+
+  async function fetchUnitRelationsHtml(u){
+    if(!state.subjectId) return "";
+    var codes = (u.ssbb || []).concat(u.cev || []);
+    if(!codes.length) return "";
+    var key = codes.slice().sort().join("|");
+    relationsState[u.id] = relationsState[u.id] || { open: false, html: "", hasErrors: false };
+    if (relationsState[u.id].lastCodesKey === key && relationsState[u.id].html) {
+      return relationsState[u.id].html;
+    }
+    var fd = new FormData();
+    fd.append("subject_id", state.subjectId);
+    fd.append("only_table2", "1");
+    codes.forEach(c => fd.append("codes", c));
+    var res = await fetch("{% url 'generator:tables_render' %}", {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken() },
+      body: fd
+    });
+    var html = await res.text();
+    relationsState[u.id].lastCodesKey = key;
+    relationsState[u.id].html = html;
+    return html;
+  }
+
+  async function refreshRelationsErrors(){
+    if (relationsRefreshPromise) return relationsRefreshPromise;
+    relationsRefreshPromise = (async function(){
+    var needsRerender = false;
+    var tasks = state.units.map(async u => {
+      var html = await fetchUnitRelationsHtml(u);
+      relationsState[u.id] = relationsState[u.id] || { open: false, html: "", hasErrors: false };
+      var temp = document.createElement("div");
+      temp.innerHTML = html;
+      if (window.RelationsTable){
+        window.RelationsTable.mark(temp);
+      }
+      relationsState[u.id].hasErrors = !!temp.querySelector('.relations-error');
+      var relBox = qs("unit-rel-" + u.id);
+      if (relBox){
+        updateRelationsButton(u, relBox);
+      } else {
+        needsRerender = true;
+      }
+    });
+    await Promise.all(tasks);
+    if (needsRerender){
+      renderUnits();
+    }
+    })();
+    await relationsRefreshPromise;
+    relationsRefreshPromise = null;
+  }
+
+  function updateRelationsButton(u, relBox){
+    var relState = relationsState[u.id] || { open: false, hasErrors: false };
+    var btn = relBox && relBox.parentElement ? relBox.parentElement.querySelector("button") : null;
+    if (!btn) return;
+    var arrow = relState.open ? "v " : "> ";
+    var warn = relState.hasErrors ? " ⚠" : "";
+    btn.textContent = arrow + "Relaciones" + warn;
+    btn.classList.toggle("relations-warning", relState.hasErrors);
   }
 
   function createUnit(){
     if(!state.subjectId) return;
+    if(isDemo && state.units.length >= DEMO_MAX_UNITS){
+      alert("Modo demo: maximo " + DEMO_MAX_UNITS + " unidades.");
+      return;
+    }
     var u = { id: uid(), name:"", ssbb:[], cev:[] };
     state.units.push(u);
     setActiveUnit(u.id);
+    scheduleSave();
+    if(qs("curriculumGrid").classList.contains("is-analysis")){
+      analyzeCurriculum();
+    }
   }
 
-  qs("subjectSelect").onchange = () => {
+  async function loadCurriculums(){
+    if(!state.subjectId) return;
+    if(isDemo){
+      var demoItems = state.curriculumName ? [{ id: "demo", name: state.curriculumName }] : [];
+      renderCurriculumList(demoItems);
+      syncCurriculumControls();
+      return;
+    }
+
+    var url = "{% url 'generator:curriculum_plans' %}?subject_id=" + encodeURIComponent(state.subjectId) + "&_ts=" + Date.now();
+    var res = await fetch(url, { cache: "no-store" });
+    var data = await res.json();
+    if(!data.ok) return;
+
+    if(data.items.length){
+      var storedPlanId = getStoredPlanId(state.subjectId);
+      var match = data.items.find(x => String(x.id) === String(storedPlanId));
+      var pick = match ? match.id : data.items[0].id;
+      await loadCurriculum(pick);
+      await refreshRelationsErrors();
+    } else {
+      state.curriculumId = null;
+      state.curriculumName = "";
+      renderUnits();
+      setLeftLocked(true);
+      qs("analysisSummary").textContent = "";
+      qs("missingSsbb").innerHTML = "";
+      qs("missingCev").innerHTML = "";
+      qs("analysisBox").style.display = "none";
+    }
+    renderCurriculumList(data.items || []);
+  }
+
+  async function loadCurriculum(id){
+    if(!id) return;
+    if(isDemo){
+      state.curriculumId = id || "demo";
+      updateAnalysisTitle();
+      renderUnits();
+      if(state.activeUnitId){
+        setActiveUnit(state.activeUnitId);
+      } else {
+        setLeftLocked(true);
+      }
+      syncCurriculumControls();
+      return;
+    }
+    state.isHydrating = true;
+    var url = "{% url 'generator:curriculum_plan_detail' 0 %}".replace("/0/", "/" + id + "/");
+    var res = await fetch(url);
+    var data = await res.json();
+    if(data.ok){
+      state.curriculumId = data.plan.id;
+      state.curriculumName = data.plan.name || "";
+      updateAnalysisTitle();
+      state.units = Array.isArray(data.plan.units) ? data.plan.units : [];
+      state.activeUnitId = state.units.length ? state.units[0].id : null;
+      renderUnits();
+      if(state.activeUnitId){
+        setActiveUnit(state.activeUnitId);
+      } else {
+        setLeftLocked(true);
+      }
+      await refreshRelationsErrors();
+      setStoredPlanId(state.subjectId, state.curriculumId);
+      setCurriculumStatus("Cargado");
+      syncCurriculumControls();
+      if(qs("curriculumGrid").classList.contains("is-analysis")){
+        analyzeCurriculum();
+      }
+    }
+    state.isHydrating = false;
+  }
+
+  async function saveCurriculum(){
+    if(state.isHydrating || !state.subjectId) return;
+    if(isDemo){
+      setCurriculumStatus("Demo: cambios locales");
+      return;
+    }
+    var payload = {
+      id: state.curriculumId,
+      subject_id: state.subjectId,
+      name: state.curriculumName || "Curriculum",
+      units: state.units
+    };
+
+    var res = await fetch("{% url 'generator:curriculum_plan_save' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken()
+      },
+      body: JSON.stringify(payload)
+    });
+    var data = await res.json();
+    if(data.ok){
+      state.curriculumId = data.id;
+      state.curriculumName = data.name;
+      updateAnalysisTitle();
+      setStoredPlanId(state.subjectId, data.id);
+      setCurriculumStatus("Guardado");
+      syncCurriculumControls();
+      updateActiveCurriculumButtonName(data.name);
+    }
+  }
+
+  function scheduleSave(){
+    if(state.isHydrating) return;
+    if(isDemo){
+      setCurriculumStatus("Demo: cambios locales");
+      return;
+    }
+    clearTimeout(state.saveTimer);
+    setCurriculumStatus("Guardando...");
+    state.saveTimer = setTimeout(saveCurriculum, 500);
+  }
+
+  function createCurriculum(){
+    if(!state.subjectId) return;
+    openCurriculumModal("create");
+  }
+
+  function renameCurriculum(){
+    if(!state.curriculumId) return;
+    openCurriculumModal("rename");
+  }
+
+  async function deleteCurriculum(){
+    if(!state.curriculumId) return;
+    if(isDemo){
+      state.curriculumId = null;
+      state.curriculumName = "";
+      state.units = [];
+      state.activeUnitId = null;
+      renderUnits();
+      setLeftLocked(true);
+      setCurriculumStatus("Demo: sin guardar");
+      renderCurriculumList([]);
+      syncCurriculumControls();
+      return;
+    }
+    var name = state.curriculumName || "este curriculum";
+    if(!confirm("Seguro que quieres borrar " + name + "?")) return;
+
+    var url = "{% url 'generator:curriculum_plan_delete' 0 %}".replace("/0/", "/" + state.curriculumId + "/");
+    var res = await fetch(url, {
+      method: "POST",
+      headers: { "X-CSRFToken": csrfToken() }
+    });
+    var data = await res.json();
+    if(!data.ok){
+      setCurriculumStatus("No se pudo borrar");
+      return;
+    }
+
+    state.curriculumId = null;
+    state.curriculumName = "";
+    state.units = [];
+    state.activeUnitId = null;
+    renderUnits();
+    setLeftLocked(true);
+    setStoredPlanId(state.subjectId, "");
+    setCurriculumStatus("Borrado");
+    syncCurriculumControls();
+    await loadCurriculums();
+  }
+
+  qs("subjectSelect").onchange = async () => {
     state.subjectId = qs("subjectSelect").value;
     state.units = [];
     state.activeUnitId = null;
+    state.curriculumId = null;
+    state.curriculumName = "";
+    relationsState = {};
+    setStoredSubjectId(state.subjectId);
+    setStoredPlanId(state.subjectId, "");
     setLeftLocked(true);
     renderUnits();
+    setCurriculumStatus("");
+    syncCurriculumControls();
+    showAnalysisPane(true);
+    await loadCurriculums();
+    await refreshRelationsErrors();
   };
 
   qs("createUnitBtn").onclick = createUnit;
+  qs("createCurriculumBtn").onclick = createCurriculum;
+  qs("deleteCurriculumBtn").onclick = deleteCurriculum;
+  qs("renameCurriculumBtn").onclick = renameCurriculum;
+  qs("analyzeBtn").onclick = analyzeCurriculum;
+  qs("analysisClose").onclick = function(){ showAnalysisPane(false); };
+
+  var modalMode = "create";
+
+  function openCurriculumModal(mode){
+    modalMode = mode || "create";
+    var suggested = "Curriculum " + new Date().toISOString().slice(0,10);
+    var title = modalMode === "rename" ? "Cambiar nombre" : "Nuevo curriculum";
+    var action = modalMode === "rename" ? "Guardar" : "Crear";
+    qs("curriculumModalTitle").textContent = title;
+    qs("curriculumModalCreate").textContent = action;
+    qs("curriculumModalName").value = modalMode === "rename" ? (state.curriculumName || suggested) : suggested;
+    qs("curriculumModal").style.display = "flex";
+    qs("curriculumModalName").focus();
+  }
+
+  async function analyzeCurriculum(){
+    if(!state.subjectId) return;
+    showAnalysisPane(true);
+
+    var payload = {
+      subject_id: state.subjectId,
+      units: state.units.map(u => ({
+        name: u.name || "",
+        ssbb: u.ssbb || [],
+        cev: u.cev || []
+      }))
+    };
+
+    var res = await fetch("{% url 'generator:curriculum_analyze' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken()
+      },
+      body: JSON.stringify(payload)
+    });
+
+    var data = await res.json();
+    if(!data.ok){
+      qs("analysisSummary").textContent = data.error || "No se pudo analizar.";
+      qs("analysisBox").style.display = "block";
+      return;
+    }
+
+    await refreshRelationsErrors();
+
+    var hasAllSsbb = data.totals.used_ssbb >= data.totals.all_ssbb;
+    var hasAllCev = data.totals.used_cev >= data.totals.all_cev;
+    var hasErrors = !(hasAllSsbb && hasAllCev);
+
+    var status = qs("analysisStatus");
+    status.style.display = "block";
+    status.textContent = hasErrors ? "Errores encontrados ⚠" : "No hay errores";
+    status.classList.toggle("analysis-status-warning", hasErrors);
+    status.classList.toggle("analysis-status-strong", hasErrors);
+
+    var summary = qs("analysisSummary");
+    summary.style.display = "block";
+    summary.textContent =
+      "SSBB usados: " + data.totals.used_ssbb + " / " + data.totals.all_ssbb +
+      " | CEv usados: " + data.totals.used_cev + " / " + data.totals.all_cev +
+      " | UD: " + data.totals.units;
+    summary.classList.toggle("analysis-status-warning", hasErrors);
+
+    var errors = [];
+    if (!hasAllSsbb) errors.push("SSBB faltantes");
+    if (!hasAllCev) errors.push("CEv faltantes");
+    var relUnits = state.units
+      .filter(u => relationsState[u.id] && relationsState[u.id].hasErrors)
+      .map(u => u.name || "Sin nombre");
+    if (relUnits.length) {
+      errors.push("Relaciones incompletas en UD: " + relUnits.join(", "));
+    }
+
+    var errorsBox = qs("analysisErrors");
+    if (errors.length) {
+      errorsBox.style.display = "block";
+      errorsBox.innerHTML = errors.map(function(item){
+        return "<div>" + item + "</div>";
+      }).join("");
+      errorsBox.classList.add("analysis-errors-warning");
+    } else {
+      errorsBox.style.display = "none";
+      errorsBox.textContent = "";
+      errorsBox.classList.remove("analysis-errors-warning");
+    }
+
+    function renderTags(container, items, cls){
+      container.innerHTML = "";
+      if(!items || !items.length){
+        var empty = document.createElement("span");
+        empty.className = "small-muted";
+        empty.textContent = "Sin elementos";
+        container.appendChild(empty);
+        return;
+      }
+      items.forEach(item => {
+        var count = item.count || 0;
+        var tag = document.createElement("span");
+        tag.className = "code-tag " + cls;
+        if(count > 1){
+          tag.innerHTML = item.code + " <strong>(x" + count + ")</strong>";
+        } else {
+          tag.textContent = item.code;
+        }
+        container.appendChild(tag);
+      });
+    }
+
+    renderTags(qs("usedSsbb"), data.used_ssbb || [], "type-ssbb");
+    renderTags(qs("usedCev"), data.used_cev || [], "type-cev");
+    renderTags(qs("missingSsbb"), data.missing_ssbb || [], "type-ssbb");
+    renderTags(qs("missingCev"), data.missing_cev || [], "type-cev");
+
+    qs("analysisBox").style.display = "block";
+  }
+
+  function closeCurriculumModal(){
+    qs("curriculumModal").style.display = "none";
+  }
+
+  async function createCurriculumFromModal(){
+    if(!state.subjectId) return;
+    var suggested = "Curriculum " + new Date().toISOString().slice(0,10);
+    var name = (qs("curriculumModalName").value || "").trim() || suggested;
+    closeCurriculumModal();
+
+    if(isDemo){
+      if(modalMode === "rename"){
+        if(!state.curriculumId) return;
+        state.curriculumName = name;
+        updateAnalysisTitle();
+        updateActiveCurriculumButtonName(name);
+        setCurriculumStatus("Demo: cambios locales");
+        renderCurriculumList([{ id: "demo", name: state.curriculumName }]);
+        syncCurriculumControls();
+        return;
+      }
+      state.curriculumId = "demo";
+      state.curriculumName = name;
+      updateAnalysisTitle();
+      state.units = [];
+      state.activeUnitId = null;
+      renderUnits();
+      setLeftLocked(true);
+      setCurriculumStatus("Demo: sin guardar");
+      renderCurriculumList([{ id: "demo", name: state.curriculumName }]);
+      syncCurriculumControls();
+      return;
+    }
+
+    if(modalMode === "rename"){
+      if(!state.curriculumId) return;
+      state.curriculumName = name;
+      updateAnalysisTitle();
+      updateActiveCurriculumButtonName(name);
+      setCurriculumStatus("Renombrando...");
+      await saveCurriculum();
+      await loadCurriculums();
+      return;
+    }
+
+    state.curriculumId = null;
+    state.curriculumName = name;
+    updateAnalysisTitle();
+    state.units = [];
+    state.activeUnitId = null;
+    renderUnits();
+    setLeftLocked(true);
+    setStoredPlanId(state.subjectId, "");
+    setCurriculumStatus("Nuevo curriculum");
+    syncCurriculumControls();
+    await saveCurriculum();
+    await loadCurriculums();
+  }
+
+  qs("curriculumModalCancel").onclick = closeCurriculumModal;
+  qs("curriculumModalCreate").onclick = createCurriculumFromModal;
+  qs("curriculumModal").querySelector(".modal-backdrop").onclick = closeCurriculumModal;
+  qs("curriculumModalName").addEventListener("keydown", function(e){
+    if(e.key === "Enter"){ createCurriculumFromModal(); }
+    if(e.key === "Escape"){ closeCurriculumModal(); }
+  });
 
   window.CurriculumUI = {
     addFromButton(btn){
@@ -229,12 +989,45 @@
       var code = btn.dataset.code;
       var tipo = btn.dataset.tipo === "SSBB" ? u.ssbb : u.cev;
       var i = tipo.indexOf(code);
+      if(isDemo && i === -1 && (u.ssbb.length + u.cev.length) >= DEMO_MAX_CODES){
+        alert("Modo demo: maximo " + DEMO_MAX_CODES + " codigos por unidad.");
+        return;
+      }
       i === -1 ? tipo.push(code) : tipo.splice(i,1);
       renderUnits();
+      var relBox = qs("unit-rel-" + u.id);
+      if (relBox){
+        loadUnitRelations(u, relBox);
+      }
+      refreshRelationsErrors();
       loadLeftCodes();
+      scheduleSave();
+      if(qs("curriculumGrid").classList.contains("is-analysis")){
+        analyzeCurriculum();
+      }
     }
   };
 
+  document.addEventListener("visibilitychange", function(){
+    if(document.visibilityState === "hidden"){
+      saveCurriculum();
+    } else {
+      refreshRelationsErrors();
+    }
+  });
+
+  var storedSubject = getStoredSubjectId();
+  if(isDemo && demoSubjectId){
+    qs("subjectSelect").value = demoSubjectId;
+    qs("subjectSelect").disabled = true;
+    qs("subjectSelect").onchange();
+  } else if(storedSubject && qs("subjectSelect").querySelector("option[value='" + storedSubject + "']")){
+    qs("subjectSelect").value = storedSubject;
+    qs("subjectSelect").onchange();
+  }
+  showAnalysisPane(true);
+  syncCurriculumControls();
+  refreshRelationsErrors();
 })();
 </script>
 

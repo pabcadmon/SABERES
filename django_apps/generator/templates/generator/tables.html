@@ -66,7 +66,8 @@
               <button class="btn btn-primary"
                       type="submit"
                       formaction="{% url 'generator:tables_export' %}"
-                      formmethod="post">
+                      formmethod="post"
+                      {% if demo_mode %}disabled title="Disponible con acceso"{% endif %}>
                 Descargar Excel
               </button>
               <a class="btn btn-ghost"
@@ -79,19 +80,11 @@
 
           <!-- hidden selected inputs -->
           <div id="selected-codes" style="display:none;"></div>
-
         </form>
       </div>
 
       <!-- RESULTS -->
       <div class="results-box panel-section">
-        <div class="card-header">
-          <div>
-            <div class="h2" style="margin:0;">Resultados</div>
-            <div class="small-muted">SSBB / CE / CEv / DO</div>
-          </div>
-        </div>
-
         <div id="code-results">
           <p class="p-muted">Escribe para buscar códigos.</p>
         </div>
@@ -101,7 +94,9 @@
 
     <!-- RIGHT COLUMN: generated tables (scroll independiente) -->
     <div class="tables-right">
-      <div id="tables-dynamic">
+      <div id="tables-dynamic"
+           data-add-url="{% url 'generator:tables_selected_add' %}"
+           data-remove-url="{% url 'generator:tables_selected_remove' %}">
         {% include "generator/_tables_tables.html" %}
       </div>
     </div>
@@ -130,5 +125,77 @@
      hx-swap="innerHTML"
      hx-trigger="change from:select[name='subject_id']">
 </div>
+
+<script>
+  const TABLES_STATE_KEY = 'tables-state-v1';
+
+  function readTablesState() {
+    try {
+      return JSON.parse(localStorage.getItem(TABLES_STATE_KEY) || '{}');
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function writeTablesState(next) {
+    localStorage.setItem(TABLES_STATE_KEY, JSON.stringify(next));
+  }
+
+  function escapeAttr(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function getSelectedCodesFromDom() {
+    return Array.from(document.querySelectorAll('#selected-codes input[name="codes"]'))
+      .map(input => input.value)
+      .filter(Boolean);
+  }
+
+  function setSelectedCodesToDom(codes) {
+    const container = document.getElementById('selected-codes');
+    if (!container) {
+      return;
+    }
+    container.innerHTML = (codes || [])
+      .map(code => `<input type="hidden" name="codes" value="${escapeAttr(code)}">`)
+      .join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const subjectSelect = document.querySelector('select[name="subject_id"]');
+    if (!subjectSelect) {
+      return;
+    }
+
+    const state = readTablesState();
+    if (state.subject_id && subjectSelect.querySelector(`option[value="${state.subject_id}"]`)) {
+      subjectSelect.value = state.subject_id;
+      if (Array.isArray(state.codes) && state.codes.length) {
+        setSelectedCodesToDom(state.codes);
+      }
+      subjectSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    subjectSelect.addEventListener('change', () => {
+      const next = readTablesState();
+      next.subject_id = subjectSelect.value || '';
+      next.codes = [];
+      writeTablesState(next);
+      setSelectedCodesToDom([]);
+    });
+  });
+
+  document.body.addEventListener('htmx:afterSwap', (event) => {
+    if (event.target && event.target.id === 'selected-codes') {
+      const next = readTablesState();
+      next.codes = getSelectedCodesFromDom();
+      writeTablesState(next);
+    }
+  });
+</script>
 
 {% endblock %}
