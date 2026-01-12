@@ -83,7 +83,7 @@
       <!-- Desplegable para seleccionar tipo -->
       <div class="dropdown-section" style="margin-bottom: 1rem;">
         <label for="code-type-selector">Selecciona tipo de código:</label>
-        <select id="code-type-selector" onchange="switchRelationsTable(this.value)">
+        <select id="code-type-selector" onchange="window.RelationsTableUI && window.RelationsTableUI.switchTable(this.value)">
           <option value="ssbb" {% if table2_ssbb %}selected{% endif %}>SSBB (Saberes Basicos)</option>
           <option value="ce" {% if table2_ce and not table2_ssbb %}selected{% endif %}>CE (Competencias Específicas)</option>
           <option value="cev" {% if table2_cev and not table2_ssbb and not table2_ce %}selected{% endif %}>CEv (Criterios de Evaluación)</option>
@@ -193,68 +193,80 @@
   {% endif %}
 
   <script>
-    const RELATIONS_STORAGE_KEY = 'relations-table-type';
+    (function(){
+      if (!window.RelationsTableUI) {
+        var RELATIONS_STORAGE_KEY = 'relations-table-type';
 
-    function switchRelationsTable(type, persist = true) {
-      // Ocultar todas las tablas
-      const tables = document.querySelectorAll('.table-relations-content');
-      tables.forEach(table => table.style.display = 'none');
-      
-      // Mostrar la tabla seleccionada
-      let selectedTable = document.getElementById('table-' + type);
-      if (!selectedTable && tables.length) {
-        selectedTable = tables[0];
-        type = selectedTable.id.replace('table-', '');
-      }
-      if (selectedTable) {
-        selectedTable.style.display = 'block';
-      }
+        function switchRelationsTable(type, persist) {
+          if (persist === undefined) persist = true;
+          // Ocultar todas las tablas
+          var tables = document.querySelectorAll('.table-relations-content');
+          tables.forEach(function(table){ table.style.display = 'none'; });
+          
+          // Mostrar la tabla seleccionada
+          var selectedTable = document.getElementById('table-' + type);
+          if (!selectedTable && tables.length) {
+            selectedTable = tables[0];
+            type = selectedTable.id.replace('table-', '');
+          }
+          if (selectedTable) {
+            selectedTable.style.display = 'block';
+          }
 
-      const selector = document.getElementById('code-type-selector');
-      if (selector && type && selector.value !== type) {
-        selector.value = type;
-      }
-      if (persist && type) {
-        localStorage.setItem(RELATIONS_STORAGE_KEY, type);
-      }
-      markRelationsErrors();
-    }
-
-    function initRelationsTablePersistence() {
-      const selector = document.getElementById('code-type-selector');
-      if (!selector) {
-        const tables = document.querySelectorAll('.table-relations-content');
-        tables.forEach(table => table.style.display = 'none');
-        if (tables.length) {
-          tables[0].style.display = 'block';
+          var selector = document.getElementById('code-type-selector');
+          if (selector && type && selector.value !== type) {
+            selector.value = type;
+          }
+          if (persist && type) {
+            localStorage.setItem(RELATIONS_STORAGE_KEY, type);
+          }
+          markRelationsErrors();
         }
-        markRelationsErrors();
-        return;
-      }
-      const savedType = localStorage.getItem(RELATIONS_STORAGE_KEY);
-      const initialType = (savedType && document.getElementById('table-' + savedType))
-        ? savedType
-        : selector.value;
-      switchRelationsTable(initialType, false);
-    }
 
-    function markRelationsErrors() {
+        function initRelationsTablePersistence() {
+          var selector = document.getElementById('code-type-selector');
+          if (!selector) {
+            var tables = document.querySelectorAll('.table-relations-content');
+            tables.forEach(function(table){ table.style.display = 'none'; });
+            if (tables.length) {
+              tables[0].style.display = 'block';
+            }
+            markRelationsErrors();
+            return;
+          }
+          var savedType = localStorage.getItem(RELATIONS_STORAGE_KEY);
+          var initialType = (savedType && document.getElementById('table-' + savedType))
+            ? savedType
+            : selector.value;
+          switchRelationsTable(initialType, false);
+        }
+
+        function markRelationsErrors() {
+          if (window.RelationsTable && window.RelationsTable.mark) {
+            window.RelationsTable.mark(document);
+          }
+        }
+
+        window.RelationsTableUI = {
+          init: initRelationsTablePersistence,
+          switchTable: switchRelationsTable
+        };
+
+        if (!window.__relationsTableHtmxHook) {
+          window.__relationsTableHtmxHook = true;
+          document.body.addEventListener('htmx:afterSwap', function(event){
+            if (event.target && event.target.id === 'tables-dynamic') {
+              initRelationsTablePersistence();
+            }
+          });
+        }
+      }
+
+      window.RelationsTableUI.init();
       if (window.RelationsTable && window.RelationsTable.mark) {
         window.RelationsTable.mark(document);
       }
-    }
-
-    initRelationsTablePersistence();
-    markRelationsErrors();
-
-    if (!window.__relationsTableHtmxHook) {
-      window.__relationsTableHtmxHook = true;
-      document.body.addEventListener('htmx:afterSwap', (event) => {
-        if (event.target && event.target.id === 'tables-dynamic') {
-          initRelationsTablePersistence();
-        }
-      });
-    }
+    })();
   </script>
 {% endif %}
 

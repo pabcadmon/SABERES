@@ -2,17 +2,40 @@ import pandas as pd
 
 from core.engine.types import CurriculumData
 from core.engine.sort import natural_sort_key
+import unicodedata
+import re
+
+def _norm_code(value: str) -> str:
+    return str(value or "").strip().rstrip(".")
+
+def _norm_col(name: str) -> str:
+    base = unicodedata.normalize("NFKD", str(name or ""))
+    ascii_name = base.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]", "", ascii_name.lower())
+
+def _find_col(df: pd.DataFrame, candidates) -> str | None:
+    for col in df.columns:
+        key = _norm_col(col)
+        for cand in candidates:
+            if cand in key:
+                return col
+    return None
 
 def clasificar_tipo(codigo: str, data: CurriculumData) -> str:
-    c = str(codigo)
-    if c in data.ssbb_set: return "SSBB"
-    if c in data.ce_set: return "CE"
-    if c in data.cev_set: return "CEv"
-    if c in data.do_set: return "DO"
+    c = _norm_code(codigo)
+    ssbb_set = {_norm_code(x) for x in data.ssbb_set}
+    ce_set = {_norm_code(x) for x in data.ce_set}
+    cev_set = {_norm_code(x) for x in data.cev_set}
+    do_set = {_norm_code(x) for x in data.do_set}
+    if c in ssbb_set: return "SSBB"
+    if c in ce_set: return "CE"
+    if c in cev_set: return "CEv"
+    if c in do_set: return "DO"
     return "Otro"
 
 
 def generar_tabla1(seleccionados, data: CurriculumData):
+    seleccionados = [str(c).strip().rstrip(".") for c in (seleccionados or []) if str(c).strip()]
     resumen = []
     tipos = {
         "SSBB": "Saber Básico",
@@ -101,6 +124,24 @@ def generar_tabla1(seleccionados, data: CurriculumData):
 
         elif tipo == 'DO':
             do_rel = []  # No mostrar DO seleccionados en su propia columna
+
+            # CE asociados a DO
+            ce_rel = ce_do_exp[
+                ce_do_exp['DOs asociados'].astype(str).isin(codigos)
+            ]['CE'].dropna().astype(str).unique().tolist()
+
+            # SB asociados a esos CE
+            sbs_rel = relaciones_long[
+                (relaciones_long['Tipo'].str.strip().str.upper() == 'CE') &
+                (relaciones_long['Codigo'].astype(str).isin(ce_rel))
+            ]['SB'].dropna().astype(str).unique().tolist()
+
+            # CEv relacionados por prefijo CE
+            cev_col = _find_col(cev_df, ["numero", "n"])
+            if cev_col:
+                cev_rel = cev_df[
+                    cev_df[cev_col].astype(str).str.startswith(tuple(str(c) + '.' for c in ce_rel))
+                ][cev_col].dropna().astype(str).unique().tolist()
 
         resumen.append({
             'Tipo': nombre_tipo,

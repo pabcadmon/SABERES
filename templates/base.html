@@ -22,7 +22,13 @@
         </nav>
 
         {% if demo_mode %}
-          <span class="demo-pill">DEMO</span>
+          <a class="demo-pill"
+             href="mailto:pabcadmon@gmail.com?subject=Acceso%20version%20completa%20Saberes%20Multi"
+             target="_blank"
+             rel="noopener"
+             onclick="window.open(this.href, '_blank');">
+            DEMO - Consigue la versión completa
+          </a>
         {% endif %}
 
         <div class="nav-user">
@@ -291,6 +297,26 @@
   </script>
   <script>
     (function(){
+      function handleDemoLimitHeader(res){
+        var trigger = res.headers && res.headers.get("HX-Trigger");
+        if (!trigger) return;
+        try {
+          var data = JSON.parse(trigger);
+          if (data && data.demoLimitReached) {
+            alert(data.demoLimitReached);
+          }
+        } catch (e) {}
+      }
+
+      document.body.addEventListener("demoLimitReached", function(event){
+        var detail = event.detail;
+        var message = "";
+        if (typeof detail === "string") message = detail;
+        else if (detail && detail.message) message = detail.message;
+        else if (detail && detail.value) message = detail.value;
+        if (message) alert(message);
+      });
+
       function postTableSelection(tag){
         var container = document.getElementById("tables-dynamic");
         if (!container) return;
@@ -320,7 +346,10 @@
           headers: { "X-CSRFToken": document.cookie.match(/csrftoken=([^;]+)/)?.[1] || "" },
           body: fd
         })
-          .then(function(res){ return res.text(); })
+          .then(function(res){
+            handleDemoLimitHeader(res);
+            return res.text();
+          })
           .then(function(html){
             var target = document.getElementById("selected-codes");
             if (target){
@@ -346,6 +375,7 @@
       document.addEventListener("click", function(event){
         var tag = event.target.closest(".code-tag[data-code]");
         if (!tag) return;
+        if (tag.classList.contains("is-disabled") || tag.dataset.disabled === "1") return;
 
         var inTables = tag.closest("#tables-dynamic");
         var inCurriculum = tag.closest("#curriculumGrid") && tag.closest(".current-relations-table");

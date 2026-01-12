@@ -2,26 +2,44 @@
 
 {% if mode == "curriculum" %}
 
-  <button type="button"
-          class="code-pill {{ type_class }} {% if r.code in selected_codes %}is-selected{% endif %}"
-          title="{% if r.code in selected_codes %}Quitar{% else %}Añadir{% endif %}"
-          data-code="{{ r.code }}"
-          data-tipo="{{ r.tipo }}"
-          onclick="CurriculumUI.addFromButton(this)">
-    {{ r.code }}
-  </button>
+  {% if r.demo_disabled %}
+    <button type="button"
+            class="code-pill {{ type_class }} is-disabled"
+            title="Disponible con acceso. Envía un email a pabcadmon@gmail.com para más información."
+            disabled>
+      {{ r.code }}
+    </button>
+  {% else %}
+    <button type="button"
+            class="code-pill {{ type_class }} {% if r.code in selected_codes %}is-selected{% endif %}"
+            title="{% if r.code in selected_codes %}Quitar{% else %}AAñadir{% endif %}"
+            data-code="{{ r.code }}"
+            data-tipo="{{ r.tipo }}"
+            onclick="CurriculumUI.addFromButton(this)">
+      {{ r.code }}
+    </button>
+  {% endif %}
 
 {% else %}
 
-  <button type="button"
-          class="code-pill {{ type_class }} {% if r.code in selected_codes %}is-selected{% endif %}"
-          title="{% if r.code in selected_codes %}Quitar{% else %}Añadir{% endif %}"
-          hx-post="{% if r.code in selected_codes %}{% url 'generator:tables_selected_remove' %}{% else %}{% url 'generator:tables_selected_add' %}{% endif %}"
-          hx-target="#selected-codes"
-          hx-swap="innerHTML"
-          hx-include="#tables-form"
-          hx-vals='{"code":"{{ r.code }}"}'>
-    {{ r.code }}
-  </button>
+  {% if r.demo_disabled %}
+    <button type="button"
+            class="code-pill {{ type_class }} is-disabled"
+            title="Disponible con acceso. Envía un email a pabcadmon@gmail.com para más información."
+            disabled>
+      {{ r.code }}
+    </button>
+  {% else %}
+    <button type="button"
+            class="code-pill {{ type_class }} {% if r.code in selected_codes %}is-selected{% endif %}"
+            title="{% if r.code in selected_codes %}Quitar{% else %}AAñadir{% endif %}"
+            hx-post="{% if r.code in selected_codes %}{% url 'generator:tables_selected_remove' %}{% else %}{% url 'generator:tables_selected_add' %}{% endif %}"
+            hx-target="#selected-codes"
+            hx-swap="innerHTML"
+            hx-include="#tables-form"
+            hx-vals='{"code":"{{ r.code }}"}'>
+      {{ r.code }}
+    </button>
+  {% endif %}
 
 {% endif %}

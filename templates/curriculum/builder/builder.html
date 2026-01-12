@@ -14,7 +14,9 @@
         <select id="subjectSelect" style="min-width:320px;">
           <option value="">Selecciona...</option>
           {% for s in subjects %}
-            <option value="{{ s.id }}">{{ s.name }}</option>
+            <option value="{{ s.id }}">
+              {{ s.name }}{% if demo_mode and demo_subject_id and s.id|stringformat:"s" == demo_subject_id|stringformat:"s" %} - *DEMO*{% endif %}
+            </option>
           {% endfor %}
         </select>
       </div>
@@ -594,7 +596,7 @@
   function createUnit(){
     if(!state.subjectId) return;
     if(isDemo && state.units.length >= DEMO_MAX_UNITS){
-      alert("Modo demo: maximo " + DEMO_MAX_UNITS + " unidades.");
+      alert("Modo demo: maximo " + DEMO_MAX_UNITS + " unidades.\\nEnvía un email a pabcadmon@gmail.com para más información.");
       return;
     }
     var u = { id: uid(), name:"", ssbb:[], cev:[] };
@@ -990,7 +992,7 @@
       var tipo = btn.dataset.tipo === "SSBB" ? u.ssbb : u.cev;
       var i = tipo.indexOf(code);
       if(isDemo && i === -1 && (u.ssbb.length + u.cev.length) >= DEMO_MAX_CODES){
-        alert("Modo demo: maximo " + DEMO_MAX_CODES + " codigos por unidad.");
+        alert("Modo demo: maximo " + DEMO_MAX_CODES + " codigos por unidad.\\nEnvía un email a pabcadmon@gmail.com para más información.");
         return;
       }
       i === -1 ? tipo.push(code) : tipo.splice(i,1);

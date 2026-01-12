@@ -180,6 +180,7 @@ code, pre{ font-family: var(--mono); }
 
 .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
 .stack{ display:flex; flex-direction:column; gap:10px; }
+.stack.stack-loose{ gap:16px; }
 .push{ flex:1; }
 
 /* ================= FORMS ================= */
@@ -382,6 +383,13 @@ select{ max-width: 420px; }
   font-weight: 800;
   letter-spacing: .08em;
   font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.demo-pill:hover{
+  background: #ffe27a;
+  border-color: #e3b83f;
 }
 
 .nav-user{
@@ -451,6 +459,15 @@ select{ max-width: 420px; }
 }
 
 .code-pill:hover{ filter: brightness(.98); }
+
+.code-pill.is-disabled{
+  background: #f1f2f5;
+  border-color: #d8dbe2;
+  color: #9aa0ad;
+  cursor: not-allowed;
+  filter: none;
+  opacity: 1;
+}
 
 .code-pill.is-selected{
   color: white;
@@ -587,6 +604,13 @@ main.container{
   margin:2px 4px 2px 0;
   white-space:nowrap;
   cursor: pointer;
+}
+
+.code-tag.is-disabled{
+  background: #f1f2f5;
+  border-color: #d8dbe2;
+  color: #9aa0ad;
+  cursor: not-allowed;
 }
 
 .code-tag-list{

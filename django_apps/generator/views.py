@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+import unicodedata
 from django.utils.html import escape
 
 import json
@@ -46,6 +47,7 @@ DEFAULT_EXCEL = Path("data/1ESO_GeH.xlsx")
 DEMO_MAX_CODES = 5
 DEMO_MAX_RESULTS = 10
 DEMO_MAX_RELATIONS = 3
+DEMO_MAX_CODES_PER_TYPE = 5
 
 def _get_demo_subject():
     return (
@@ -95,10 +97,71 @@ def _get_subjects_for_user(user):
     accesses = user.usersubjectaccess_set.select_related("subject").all()
     return [a.subject for a in accesses]
 
+def _normalize_colname(name: str) -> str:
+    base = unicodedata.normalize("NFKD", str(name or ""))
+    ascii_name = base.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]", "", ascii_name.lower())
+
 def _sort_df_by_codigo_natural(dfx):
     if dfx is None or dfx.empty:
         return dfx
-    return dfx.sort_values("Código", key=lambda s: s.map(natural_sort_key))
+    code_col = None
+    for col in dfx.columns:
+        key = _normalize_colname(col)
+        if "codigo" in key or key == "code":
+            code_col = col
+            break
+    if not code_col:
+        return dfx
+    return dfx.sort_values(code_col, key=lambda s: s.map(natural_sort_key))
+def _get_demo_allowed_codes(df, max_per_type: int):
+    if df is None or df.empty:
+        return set()
+    def _find_col(candidates):
+        for col in df.columns:
+            key = _normalize_colname(col)
+            for cand in candidates:
+                if cand in key:
+                    return col
+        return None
+    code_col = _find_col(["codigo", "code"])
+    type_col = _find_col(["tipo", "type"])
+    if not code_col or not type_col:
+        return set()
+    df_sorted = _sort_df_by_codigo_natural(df)
+    allowed = set()
+    for t in ("SSBB", "CE", "CEv", "DO"):
+        subset = df_sorted[df_sorted[type_col] == t]
+        count = 0
+        for code in subset[code_col].astype(str).tolist():
+            code_norm = _normalize_code(code)
+            if not code_norm:
+                continue
+            allowed.add(code_norm)
+            count += 1
+            if count >= max_per_type:
+                break
+    return allowed
+
+def _apply_demo_description_lock(df, demo_allowed: set):
+    if df is None or df.empty:
+        return df
+    code_col = None
+    desc_col = None
+    for col in df.columns:
+        key = _normalize_colname(col)
+        if code_col is None and ("codigo" in key or key == "code" or "elemento" in key):
+            code_col = col
+        if desc_col is None and ("descripcion" in key or key.startswith("desc") or "etiqueta" in key or "label" in key):
+            desc_col = col
+    if not code_col or not desc_col:
+        return df
+    out = df.copy()
+    for idx, row in out.iterrows():
+        code = _normalize_code(row.get(code_col))
+        if code and code not in demo_allowed:
+            out.at[idx, desc_col] = "NO DISPONIBLE EN VERSIÓN DEMO"
+    return out
 
 def home(request):
     return render(request, "home.html")
@@ -319,6 +382,7 @@ def tables_view(request):
         "subjects": subjects,
         "selected_subject": selected_subject,
         "demo_mode": demo_mode,
+        "demo_subject_id": demo_subject.id if demo_subject else "",
         # defaults de filtros tipo (como Streamlit: todos True)
         "mostrar_ssbb": True,
         "mostrar_ce": True,
@@ -355,6 +419,7 @@ def tables_render(request):
     subject, demo_mode, demo_subject = _resolve_subject(request.user, subject_id)
 
     selected_codes = [c.strip() for c in request.POST.getlist("codes") if c.strip()]
+    selected_set = set([_normalize_code(c) for c in selected_codes])
     if demo_mode and len(selected_codes) > DEMO_MAX_CODES:
         selected_codes = selected_codes[:DEMO_MAX_CODES]
 
@@ -399,6 +464,7 @@ def tables_render(request):
     for c, t in zip(codigos_df["Código"].astype(str), codigos_df["Tipo"].astype(str)):
         code_to_type[str(c).strip().rstrip(".")] = str(t).strip()
 
+    demo_allowed = _get_demo_allowed_codes(codigos_df, DEMO_MAX_CODES_PER_TYPE) if demo_mode else None
     has_selection = has_subject and bool(selected_codes)
 
     table1 = table2_ssbb = table2_ce = table2_cev = table2_do = table3 = None
@@ -418,8 +484,10 @@ def tables_render(request):
             tabla2_cev_display = marcar_seleccion_tabla2(res.tabla2_cev, selected_codes)
             tabla2_do_display = marcar_seleccion_tabla2(res.tabla2_do, selected_codes)
             tabla3_display = marcar_seleccion_tabla3(res.tabla3, selected_codes)
+            if demo_mode and demo_allowed is not None:
+                tabla3_display = _apply_demo_description_lock(tabla3_display, demo_allowed)
 
-            t1 = _decorate_df_codes(res.tabla1, code_to_type, selected_codes)
+            t1 = _decorate_df_codes(res.tabla1, code_to_type, selected_codes, demo_allowed)
             t2_ssbb_src = tabla2_ssbb_display
             t2_ce_src = tabla2_ce_display
             t2_cev_src = tabla2_cev_display
@@ -427,11 +495,11 @@ def tables_render(request):
             if demo_mode:
                 t2_ssbb_src = _trim_relation_df(t2_ssbb_src, DEMO_MAX_RELATIONS)
                 t2_cev_src = _trim_relation_df(t2_cev_src, DEMO_MAX_RELATIONS)
-            t2_ssbb = _decorate_df_codes(t2_ssbb_src, code_to_type, selected_codes)
-            t2_ce = _decorate_df_codes(t2_ce_src, code_to_type, selected_codes)
-            t2_cev = _decorate_df_codes(t2_cev_src, code_to_type, selected_codes)
-            t2_do = _decorate_df_codes(t2_do_src, code_to_type, selected_codes)
-            t3 = _decorate_df_codes(tabla3_display, code_to_type, selected_codes)
+            t2_ssbb = _decorate_df_codes(t2_ssbb_src, code_to_type, selected_codes, demo_allowed)
+            t2_ce = _decorate_df_codes(t2_ce_src, code_to_type, selected_codes, demo_allowed)
+            t2_cev = _decorate_df_codes(t2_cev_src, code_to_type, selected_codes, demo_allowed)
+            t2_do = _decorate_df_codes(t2_do_src, code_to_type, selected_codes, demo_allowed)
+            t3 = _decorate_df_codes(tabla3_display, code_to_type, selected_codes, demo_allowed)
 
             t1 = t1.rename(columns=lambda c: str(c).replace(" relacionados", ""))
 
@@ -468,8 +536,8 @@ def tables_render(request):
         if has_selection and res is not None:
             rows = []
             max_related = DEMO_MAX_RELATIONS if demo_mode else None
-            rows.extend(_build_selected_relations_table(res.tabla2_ssbb, selected_codes, code_to_type, "SSBB", max_related)["rows"])
-            rows.extend(_build_selected_relations_table(res.tabla2_cev, selected_codes, code_to_type, "CEv", max_related)["rows"])
+            rows.extend(_build_selected_relations_table(res.tabla2_ssbb, selected_codes, code_to_type, "SSBB", max_related, demo_allowed)["rows"])
+            rows.extend(_build_selected_relations_table(res.tabla2_cev, selected_codes, code_to_type, "CEv", max_related, demo_allowed)["rows"])
             table2_selected["rows"] = rows
     else:
         table2_selected = None
@@ -508,7 +576,7 @@ def tables_export(request):
         return HttpResponse("Asignatura no válida.", status=400)
 
     if demo_mode:
-        return HttpResponse("Disponible con acceso.", status=403)
+        return HttpResponse("Disponible con acceso. Envía un email a pabcadmon@gmail.com para más información.", status=403)
 
     job = ExportJob.objects.create(
         user=request.user,
@@ -569,6 +637,7 @@ def tables_search(request):
     mode = (request.POST.get("mode") or "").strip()
 
     selected_codes = [c.strip() for c in request.POST.getlist("codes") if c.strip()]
+    selected_set = set([_normalize_code(c) for c in selected_codes])
     subject, demo_mode, demo_subject = _resolve_subject(request.user, subject_id)
     has_subject = subject is not None
     if demo_mode and len(selected_codes) > DEMO_MAX_CODES:
@@ -585,7 +654,8 @@ def tables_search(request):
         lab = df["Etiqueta"].astype(str)
 
         out = []
-        max_results = DEMO_MAX_RESULTS if demo_mode else 50
+        max_results = None if demo_mode else 50
+        demo_allowed = _get_demo_allowed_codes(df, DEMO_MAX_CODES_PER_TYPE) if demo_mode else None
 
         if q:
             q_low = q.lower()
@@ -608,9 +678,9 @@ def tables_search(request):
                         "label": str(row["Etiqueta"]),
                         "tipo": str(row["Tipo"]),
                     })
-                    if len(out) >= max_results:
+                    if max_results is not None and len(out) >= max_results:
                         break
-                if len(out) >= max_results:
+                if max_results is not None and len(out) >= max_results:
                     break
 
         else:
@@ -619,14 +689,14 @@ def tables_search(request):
             print(df_all)
 
             # si quieres "todo todo", quita el límite o súbelo
-            MAX_ALL = DEMO_MAX_RESULTS if demo_mode else 500  # recomendado para no matar el render si hay miles
+            MAX_ALL = None if demo_mode else 500  # recomendado para no matar el render si hay miles
             for _, row in df_all.iterrows():
                 out.append({
                     "code": str(row["Código"]),
                     "label": str(row["Etiqueta"]),
                     "tipo": str(row["Tipo"]),
                 })
-                if len(out) >= MAX_ALL:
+                if MAX_ALL is not None and len(out) >= MAX_ALL:
                     break
 
         # agrupar por tipo
@@ -634,6 +704,12 @@ def tables_search(request):
             t = item.get("tipo")
             if t in groups:
                 groups[t].append(item)
+
+        if demo_mode and demo_allowed is not None:
+            for items in groups.values():
+                for item in items:
+                    code_norm = _normalize_code(item.get("code"))
+                    item["demo_disabled"] = code_norm not in demo_allowed and code_norm not in selected_set
 
         MAX_COLS = 3
         groups_cols = {
@@ -651,6 +727,7 @@ def tables_search(request):
         "selected_codes": selected_codes,
         "is_full_list": has_subject and not q,   # opcional para el template
         "max_all": DEMO_MAX_RESULTS if demo_mode else 500,  # opcional
+        "demo_mode": demo_mode,
     }
     return render(request, "generator/_code_results.html", ctx)
 
@@ -671,8 +748,23 @@ def tables_selected_add(request):
     code = (request.POST.get("code") or "").strip()
     codes = [c.strip() for c in request.POST.getlist("codes") if c.strip()]
 
-    if _is_demo_user(request.user) and code and code not in codes and len(codes) >= DEMO_MAX_CODES:
+    subject_id = (request.POST.get("subject_id") or "").strip()
+    subject, demo_mode, demo_subject = _resolve_subject(request.user, subject_id)
+
+    if demo_mode and subject and code and code not in codes:
+        data = cargar_datos(subject.dataset_path)
+        df = build_codigos_df(data.ssbb_df, data.ce_df, data.cev_df, data.do_df)
+        allowed = _get_demo_allowed_codes(df, DEMO_MAX_CODES_PER_TYPE)
+        if _normalize_code(code) not in allowed:
+            response = render(request, "generator/_selected_codes.html", {"selected_codes": codes})
+            response["HX-Trigger-After-Settle"] = "codesChanged"
+            return response
+
+    if demo_mode and code and code not in codes and len(codes) >= DEMO_MAX_CODES:
         response = render(request, "generator/_selected_codes.html", {"selected_codes": codes})
+        response["HX-Trigger"] = json.dumps({
+            "demoLimitReached": "VERSIÓN DEMO - Límite de 5 códigos simultáneos. Envía un email a pabcadmon@gmail.com para más información."
+        })
         response["HX-Trigger-After-Settle"] = "codesChanged"
         return response
 
@@ -705,7 +797,7 @@ def _type_to_css(t: str) -> str:
     if t == "CEv":  return "type-cev"
     return ""
 
-def _decorate_cell(value, code_to_type: dict, selected_set: set) -> str:
+def _decorate_cell(value, code_to_type: dict, selected_set: set, demo_allowed: set | None = None) -> str:
     """
     Convierte celdas tipo:
       "GEH.1.C.1, GEH.1.C.10"
@@ -751,10 +843,13 @@ def _decorate_cell(value, code_to_type: dict, selected_set: set) -> str:
         touched = True
         cls = _type_to_css(tipo)
         sel = " is-selected" if code in selected_set else ""
+        demo_disabled = demo_allowed is not None and code not in demo_allowed and code not in selected_set
+        disabled_cls = " is-disabled" if demo_disabled else ""
         label = f"{code}"
-        title = "Quitar" if code in selected_set else "Añadir"
+        title = "Disponible con acceso. Envía un email a pabcadmon@gmail.com para más información." if demo_disabled else ("Quitar" if code in selected_set else "Añadir")
+        data_disabled = ' data-disabled="1"' if demo_disabled else ""
         out.append(
-            f'<span class="code-tag {cls}{sel}" data-code="{escape(label)}" title="{title}">{escape(label)}</span>'
+            f'<span class="code-tag {cls}{sel}{disabled_cls}" data-code="{escape(label)}" title="{title}"{data_disabled}>{escape(label)}</span>'
         )
 
     # Si no hemos “tocado” nada y era una celda normal, devolvemos escapado original
@@ -767,11 +862,11 @@ def _decorate_cell(value, code_to_type: dict, selected_set: set) -> str:
         return f'<div class="code-tag-list">{rendered}</div>'
     return rendered
 
-def _decorate_df_codes(df, code_to_type: dict, selected_codes: list[str]):
+def _decorate_df_codes(df, code_to_type: dict, selected_codes: list[str], demo_allowed: set | None = None):
     selected_set = set([c.strip().rstrip(".") for c in selected_codes])
     out = df.copy()
     for col in out.columns:
-        out[col] = out[col].apply(lambda v: _decorate_cell(v, code_to_type, selected_set))
+        out[col] = out[col].apply(lambda v: _decorate_cell(v, code_to_type, selected_set, demo_allowed))
     return out
 
 def _normalize_code(value: str) -> str:
@@ -799,7 +894,7 @@ def _find_relation_columns(df, primary_type: str):
         return None, None
     return cols[primary_idx], cols[related_idx]
 
-def _build_selected_relations_table(df, selected_codes, code_to_type: dict, primary_type: str, max_related: int | None = None):
+def _build_selected_relations_table(df, selected_codes, code_to_type: dict, primary_type: str, max_related: int | None = None, demo_allowed: set | None = None):
     primary_col, related_col = _find_relation_columns(df, primary_type)
     if primary_col is None or related_col is None:
         return {"headers": ["Elemento selec.", "Relacionados"], "rows": []}
@@ -830,8 +925,8 @@ def _build_selected_relations_table(df, selected_codes, code_to_type: dict, prim
             related_codes = re.findall(r"[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)+", related)
             if len(related_codes) > max_related:
                 related = ", ".join(related_codes[:max_related])
-        left = _decorate_cell(code_norm, code_to_type, selected_set)
-        right = _decorate_cell(related, code_to_type, selected_set)
+        left = _decorate_cell(code_norm, code_to_type, selected_set, demo_allowed)
+        right = _decorate_cell(related, code_to_type, selected_set, demo_allowed)
         rows.append([left, right])
 
     return {"headers": ["Elemento selec.", "Relacionados"], "rows": rows}
