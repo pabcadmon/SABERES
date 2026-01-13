@@ -1,7 +1,7 @@
 from core.loader import cargar_datos
 from core.engine.types import CurriculumData
 
-def test_cargar_datos_devuelve_curriculumdata():
+def test_cargar_datos_devuelve_secuenciaciondata():
     data = cargar_datos("data/1ESO_GeH.xlsx")  # pon un excel real que tengas en repo
     assert isinstance(data, CurriculumData)
 

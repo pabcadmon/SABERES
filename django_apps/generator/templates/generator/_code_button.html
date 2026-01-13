@@ -1,6 +1,6 @@
 {# templates/generator/_code_button.html #}
 
-{% if mode == "curriculum" %}
+{% if mode == "secuenciacion" %}
 
   {% if r.demo_disabled %}
     <button type="button"
@@ -15,7 +15,7 @@
             title="{% if r.code in selected_codes %}Quitar{% else %}AAñadir{% endif %}"
             data-code="{{ r.code }}"
             data-tipo="{{ r.tipo }}"
-            onclick="CurriculumUI.addFromButton(this)">
+            onclick="secuenciacionUI.addFromButton(this)">
       {{ r.code }}
     </button>
   {% endif %}
@@ -43,3 +43,4 @@
   {% endif %}
 
 {% endif %}
+

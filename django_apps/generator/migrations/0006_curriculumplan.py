@@ -15,15 +15,16 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='CurriculumPlan',
+            name='secuenciacionPlan',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(default='Curriculum', max_length=120)),
+                ('name', models.CharField(default='secuenciacion', max_length=120)),
                 ('units', models.JSONField(blank=True, default=list)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
-                ('subject', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='curriculums', to='accounts.subject')),
+                ('subject', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='secuenciacions', to='accounts.subject')),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
         ),
     ]
+

@@ -18,7 +18,7 @@
 
         <nav class="navlinks">
           <a class="nav-cta" href="{% url 'generator:tables' %}">Generar tablas</a>
-          <a class="nav-cta" href="{% url 'generator:curriculum_builder' %}">Generar Curriculum</a>
+          <a class="nav-cta" href="{% url 'generator:secuenciacion_builder' %}">Generar Secuenciación</a>
         </nav>
 
         {% if demo_mode %}
@@ -233,7 +233,7 @@
         var selectedSet = getSelectedCodesSet(scope);
         var tables = scope.querySelectorAll('.current-relations-table');
         tables.forEach(function(table){
-          var scopeMarker = table.closest('[data-relations-scope="curriculum"]');
+          var scopeMarker = table.closest('[data-relations-scope="secuenciacion"]');
           if (!scopeMarker) return;
           var wrapper = table.closest('.table-relations-content');
           if (wrapper && !isVisible(wrapper)) return;
@@ -378,7 +378,7 @@
         if (tag.classList.contains("is-disabled") || tag.dataset.disabled === "1") return;
 
         var inTables = tag.closest("#tables-dynamic");
-        var inCurriculum = tag.closest("#curriculumGrid") && tag.closest(".current-relations-table");
+        var inCurriculum = tag.closest("#secuenciacionGrid") && tag.closest(".current-relations-table");
 
         if (inTables){
           event.preventDefault();

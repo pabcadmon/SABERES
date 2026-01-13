@@ -2,9 +2,9 @@
 {% load static %}
 
 {% block content %}
-<div class="curriculum-page">
+<div class="secuenciacion-page">
 
-  <h1 style="margin: 0 0 12px 0;">Generar Curriculum</h1>
+  <h1 style="margin: 0 0 12px 0;">Generar Secuenciación</h1>
 
   <!-- ASIGNATURA -->
   <div class="card" style="margin-bottom:14px;">
@@ -22,22 +22,22 @@
       </div>
 
       <div style="min-width:280px;">
-        <label style="font-size:12px; color:#666; margin-bottom:6px;">Curriculum</label>
-        <div id="curriculumList"
+        <label style="font-size:12px; color:#666; margin-bottom:6px;">Secuenciación</label>
+        <div id="secuenciacionList"
              style="display:flex; flex-wrap:wrap; gap:6px; max-width:520px;">
         </div>
         <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
-          <button id="createCurriculumBtn" type="button">Nuevo</button>
-          <button id="deleteCurriculumBtn" type="button">Borrar</button>
-          <button id="renameCurriculumBtn" type="button">Cambiar nombre</button>
+          <button id="createsecuenciacionBtn" type="button">Nuevo</button>
+          <button id="deletesecuenciacionBtn" type="button">Borrar</button>
+          <button id="renamesecuenciacionBtn" type="button">Cambiar nombre</button>
         </div>
-        <div id="curriculumStatus" style="display:none;"></div>
+        <div id="secuenciacionStatus" style="display:none;"></div>
       </div>
     </div>
   </div>
 
   <!-- GRID PRINCIPAL -->
-  <div id="curriculumGrid" class="curriculum-grid">
+  <div id="secuenciacionGrid" class="secuenciacion-grid" style="display:none;">
 
     <!-- IZQUIERDA: CÓDIGOS -->
     <div class="card">
@@ -89,7 +89,7 @@
     <!-- RIGHT: ANALISIS -->
     <div id="analysisPane" class="card">
       <div style="display:flex; align-items:center; gap:10px;">
-        <h2 id="analysisTitle" style="margin:0; font-size:16px;">Analisis: Curriculum</h2>
+        <h2 id="analysisTitle" style="margin:0; font-size:16px;">Análisis: Secuenciación</h2>
         <button id="analysisClose" type="button" style="margin-left:auto;">X</button>
       </div>
 
@@ -144,15 +144,15 @@
   </div>
 </div>
 
-<div id="curriculumModal" class="modal" style="display:none;">
+<div id="secuenciacionModal" class="modal" style="display:none;">
   <div class="modal-backdrop"></div>
   <div class="modal-card">
-    <div id="curriculumModalTitle" class="modal-title">Nuevo curriculum</div>
+    <div id="secuenciacionModalTitle" class="modal-title">Nuevo Secuenciación</div>
     <label class="modal-label">Nombre</label>
-    <input id="curriculumModalName" class="input" placeholder="Nombre del curriculum" />
+    <input id="secuenciacionModalName" class="input" placeholder="Nombre del Secuenciación" />
     <div class="modal-actions">
-      <button id="curriculumModalCancel" type="button">Cancelar</button>
-      <button id="curriculumModalCreate" type="button" class="btn-primary">Crear</button>
+      <button id="secuenciacionModalCancel" type="button">Cancelar</button>
+      <button id="secuenciacionModalCreate" type="button" class="btn-primary">Crear</button>
     </div>
   </div>
 </div>
@@ -164,13 +164,14 @@
   var demoSubjectId = "{{ demo_subject_id }}";
   var DEMO_MAX_UNITS = 3;
   var DEMO_MAX_CODES = 5;
+  var DEMO_STORAGE_KEY = "secuenciacion.demo.state";
 
   var state = {
     subjectId: "",
     units: [],
     activeUnitId: null,
-    curriculumId: null,
-    curriculumName: "",
+    secuenciacionId: null,
+    secuenciacionName: "",
     isHydrating: false,
     saveTimer: null
   };
@@ -188,9 +189,52 @@
     return "u_" + Math.random().toString(16).slice(2);
   }
 
+  function readDemoState(){
+    try {
+      var raw = localStorage.getItem(DEMO_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeDemoState(){
+    try {
+      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify({
+        subjectId: state.subjectId || "",
+        secuenciacionId: state.secuenciacionId || "demo",
+        secuenciacionName: state.secuenciacionName || "",
+        activeUnitId: state.activeUnitId || "",
+        units: Array.isArray(state.units) ? state.units : []
+      }));
+    } catch (e) {}
+  }
+
+  function clearDemoState(){
+    try { localStorage.removeItem(DEMO_STORAGE_KEY); } catch (e) {}
+  }
+
+  function applyDemoState(data){
+    if (!data) return;
+    if (data.subjectId && state.subjectId && data.subjectId !== state.subjectId) return;
+    state.secuenciacionId = data.secuenciacionId || "demo";
+    state.secuenciacionName = data.secuenciacionName || "";
+    state.units = Array.isArray(data.units) ? data.units : [];
+    var hasUnit = state.units.some(u => String(u.id) === String(data.activeUnitId));
+    state.activeUnitId = hasUnit ? data.activeUnitId : (state.units[0] ? state.units[0].id : null);
+    syncPanelsVisibility();
+    updateAnalysisTitle();
+    if (state.activeUnitId) {
+      setActiveUnit(state.activeUnitId);
+    } else {
+      renderUnits();
+      setLeftLocked(true);
+    }
+  }
+
   var storage = {
-    subjectKey: "curriculum.subjectId",
-    planKeyPrefix: "curriculum.planId."
+    subjectKey: "secuenciacion.subjectId",
+    planKeyPrefix: "secuenciacion.planId."
   };
 
   function getStoredSubjectId(){
@@ -214,11 +258,11 @@
   function setLeftLocked(locked){
     qs("leftLocked").style.display = locked ? "block" : "none";
     qs("leftPane").style.display   = locked ? "none"  : "block";
-    document.body.classList.toggle("curriculum-left-open", !locked);
+    document.body.classList.toggle("secuenciacion-left-open", !locked);
   }
 
   function showAnalysisPane(show){
-    var grid = qs("curriculumGrid");
+    var grid = qs("secuenciacionGrid");
     if(show){
       grid.classList.add("is-analysis");
     } else {
@@ -229,23 +273,29 @@
     }
   }
 
-  function setCurriculumStatus(text){
-    qs("curriculumStatus").textContent = text || "";
+  function setsecuenciacionStatus(text){
+    qs("secuenciacionStatus").textContent = text || "";
+  }
+
+  function syncPanelsVisibility(){
+    var grid = qs("secuenciacionGrid");
+    if (!grid) return;
+    grid.style.display = state.secuenciacionId ? "" : "none";
   }
 
   function updateAnalysisTitle(){
     var u = activeUnit();
-    var name = u && u.name ? u.name : (state.curriculumName || "Curriculum");
-    qs("analysisTitle").textContent = "Analisis: " + name;
+    var name = u && u.name ? u.name : (state.secuenciacionName || "Secuenciación");
+    qs("analysisTitle").textContent = "Análisis: " + name;
   }
 
-  function renderCurriculumList(items){
-    var list = qs("curriculumList");
+  function rendersecuenciacionList(items){
+    var list = qs("secuenciacionList");
     list.innerHTML = "";
     if(!items || !items.length){
       var empty = document.createElement("span");
       empty.className = "small-muted";
-      empty.textContent = "Sin curriculums";
+      empty.textContent = "Sin secuenciaciones";
       list.appendChild(empty);
       return;
     }
@@ -256,32 +306,32 @@
       btn.className = "btn-small";
       btn.dataset.id = item.id;
       btn.textContent = item.name;
-      if(String(item.id) === String(state.curriculumId)){
+      if(String(item.id) === String(state.secuenciacionId)){
         btn.classList.add("btn-primary");
       }
       btn.onclick = async () => {
         setStoredPlanId(state.subjectId, item.id);
-        setCurriculumStatus("Cargando...");
-        await loadCurriculum(item.id);
-        renderCurriculumList(items);
+        setsecuenciacionStatus("Cargando...");
+        await loadsecuenciacion(item.id);
+        rendersecuenciacionList(items);
       };
       list.appendChild(btn);
     });
   }
 
-  function updateActiveCurriculumButtonName(name){
-    if(!state.curriculumId) return;
-    var list = qs("curriculumList");
-    var btn = list.querySelector("button[data-id='" + state.curriculumId + "']");
+  function updateActivesecuenciacionButtonName(name){
+    if(!state.secuenciacionId) return;
+    var list = qs("secuenciacionList");
+    var btn = list.querySelector("button[data-id='" + state.secuenciacionId + "']");
     if(btn) btn.textContent = name;
   }
 
-  function syncCurriculumControls(){
+  function syncsecuenciacionControls(){
     var hasSubject = !!state.subjectId;
-    var hasCurriculum = !!state.curriculumId;
-    qs("createCurriculumBtn").disabled = !hasSubject;
-    qs("deleteCurriculumBtn").disabled = !hasSubject || !hasCurriculum;
-    qs("renameCurriculumBtn").disabled = !hasSubject || !hasCurriculum;
+    var hassecuenciacion = !!state.secuenciacionId;
+    qs("createsecuenciacionBtn").disabled = !hasSubject;
+    qs("deletesecuenciacionBtn").disabled = !hasSubject || !hassecuenciacion;
+    qs("renamesecuenciacionBtn").disabled = !hasSubject || !hassecuenciacion;
     qs("analyzeBtn").disabled = !hasSubject;
   }
 
@@ -306,8 +356,8 @@
         loadUnitRelations(u, relBox);
       }
     }
-    if(qs("curriculumGrid").classList.contains("is-analysis")){
-      analyzeCurriculum();
+    if(qs("secuenciacionGrid").classList.contains("is-analysis")){
+      analyzesecuenciacion();
     }
     refreshRelationsErrors();
   }
@@ -339,8 +389,8 @@
           qs("activeUnitName").textContent = u.name || "Sin nombre";
         }
         scheduleSave();
-        if(qs("curriculumGrid").classList.contains("is-analysis")){
-          analyzeCurriculum();
+        if(qs("secuenciacionGrid").classList.contains("is-analysis")){
+          analyzesecuenciacion();
         }
       };
 
@@ -366,8 +416,8 @@
         }
         scheduleSave();
         refreshRelationsErrors();
-        if(qs("curriculumGrid").classList.contains("is-analysis")){
-          analyzeCurriculum();
+        if(qs("secuenciacionGrid").classList.contains("is-analysis")){
+          analyzesecuenciacion();
         }
       };
 
@@ -473,7 +523,7 @@
 
     var fd = new FormData();
     fd.append("subject_id", state.subjectId);
-    fd.append("mode", "curriculum");
+    fd.append("mode", "secuenciacion");
     u.ssbb.forEach(c => fd.append("codes", c));
     u.cev.forEach(c => fd.append("codes", c));
 
@@ -603,21 +653,21 @@
     state.units.push(u);
     setActiveUnit(u.id);
     scheduleSave();
-    if(qs("curriculumGrid").classList.contains("is-analysis")){
-      analyzeCurriculum();
+    if(qs("secuenciacionGrid").classList.contains("is-analysis")){
+      analyzesecuenciacion();
     }
   }
 
-  async function loadCurriculums(){
+  async function loadsecuenciacions(){
     if(!state.subjectId) return;
     if(isDemo){
-      var demoItems = state.curriculumName ? [{ id: "demo", name: state.curriculumName }] : [];
-      renderCurriculumList(demoItems);
-      syncCurriculumControls();
+      var demoItems = state.secuenciacionName ? [{ id: "demo", name: state.secuenciacionName }] : [];
+      rendersecuenciacionList(demoItems);
+      syncsecuenciacionControls();
       return;
     }
 
-    var url = "{% url 'generator:curriculum_plans' %}?subject_id=" + encodeURIComponent(state.subjectId) + "&_ts=" + Date.now();
+    var url = "{% url 'generator:secuenciacion_plans' %}?subject_id=" + encodeURIComponent(state.subjectId) + "&_ts=" + Date.now();
     var res = await fetch(url, { cache: "no-store" });
     var data = await res.json();
     if(!data.ok) return;
@@ -626,11 +676,12 @@
       var storedPlanId = getStoredPlanId(state.subjectId);
       var match = data.items.find(x => String(x.id) === String(storedPlanId));
       var pick = match ? match.id : data.items[0].id;
-      await loadCurriculum(pick);
+      await loadsecuenciacion(pick);
       await refreshRelationsErrors();
     } else {
-      state.curriculumId = null;
-      state.curriculumName = "";
+      state.secuenciacionId = null;
+      state.secuenciacionName = "";
+      syncPanelsVisibility();
       renderUnits();
       setLeftLocked(true);
       qs("analysisSummary").textContent = "";
@@ -638,13 +689,14 @@
       qs("missingCev").innerHTML = "";
       qs("analysisBox").style.display = "none";
     }
-    renderCurriculumList(data.items || []);
+    rendersecuenciacionList(data.items || []);
   }
 
-  async function loadCurriculum(id){
+  async function loadsecuenciacion(id){
     if(!id) return;
     if(isDemo){
-      state.curriculumId = id || "demo";
+      state.secuenciacionId = id || "demo";
+      syncPanelsVisibility();
       updateAnalysisTitle();
       renderUnits();
       if(state.activeUnitId){
@@ -652,16 +704,17 @@
       } else {
         setLeftLocked(true);
       }
-      syncCurriculumControls();
+      syncsecuenciacionControls();
       return;
     }
     state.isHydrating = true;
-    var url = "{% url 'generator:curriculum_plan_detail' 0 %}".replace("/0/", "/" + id + "/");
+    var url = "{% url 'generator:secuenciacion_plan_detail' 0 %}".replace("/0/", "/" + id + "/");
     var res = await fetch(url);
     var data = await res.json();
     if(data.ok){
-      state.curriculumId = data.plan.id;
-      state.curriculumName = data.plan.name || "";
+      state.secuenciacionId = data.plan.id;
+      state.secuenciacionName = data.plan.name || "";
+      syncPanelsVisibility();
       updateAnalysisTitle();
       state.units = Array.isArray(data.plan.units) ? data.plan.units : [];
       state.activeUnitId = state.units.length ? state.units[0].id : null;
@@ -672,30 +725,31 @@
         setLeftLocked(true);
       }
       await refreshRelationsErrors();
-      setStoredPlanId(state.subjectId, state.curriculumId);
-      setCurriculumStatus("Cargado");
-      syncCurriculumControls();
-      if(qs("curriculumGrid").classList.contains("is-analysis")){
-        analyzeCurriculum();
+      setStoredPlanId(state.subjectId, state.secuenciacionId);
+      setsecuenciacionStatus("Cargado");
+      syncsecuenciacionControls();
+      if(qs("secuenciacionGrid").classList.contains("is-analysis")){
+        analyzesecuenciacion();
       }
     }
     state.isHydrating = false;
   }
 
-  async function saveCurriculum(){
+  async function savesecuenciacion(){
     if(state.isHydrating || !state.subjectId) return;
     if(isDemo){
-      setCurriculumStatus("Demo: cambios locales");
+      writeDemoState();
+      setsecuenciacionStatus("Demo: cambios locales");
       return;
     }
     var payload = {
-      id: state.curriculumId,
+      id: state.secuenciacionId,
       subject_id: state.subjectId,
-      name: state.curriculumName || "Curriculum",
+      name: state.secuenciacionName || "secuenciación",
       units: state.units
     };
 
-    var res = await fetch("{% url 'generator:curriculum_plan_save' %}", {
+    var res = await fetch("{% url 'generator:secuenciacion_plan_save' %}", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -705,117 +759,126 @@
     });
     var data = await res.json();
     if(data.ok){
-      state.curriculumId = data.id;
-      state.curriculumName = data.name;
+      state.secuenciacionId = data.id;
+      state.secuenciacionName = data.name;
       updateAnalysisTitle();
       setStoredPlanId(state.subjectId, data.id);
-      setCurriculumStatus("Guardado");
-      syncCurriculumControls();
-      updateActiveCurriculumButtonName(data.name);
+      setsecuenciacionStatus("Guardado");
+      syncsecuenciacionControls();
+      updateActivesecuenciacionButtonName(data.name);
     }
   }
 
   function scheduleSave(){
     if(state.isHydrating) return;
     if(isDemo){
-      setCurriculumStatus("Demo: cambios locales");
+      writeDemoState();
+      setsecuenciacionStatus("Demo: cambios locales");
       return;
     }
     clearTimeout(state.saveTimer);
-    setCurriculumStatus("Guardando...");
-    state.saveTimer = setTimeout(saveCurriculum, 500);
+    setsecuenciacionStatus("Guardando...");
+    state.saveTimer = setTimeout(savesecuenciacion, 500);
   }
 
-  function createCurriculum(){
+  function createsecuenciacion(){
     if(!state.subjectId) return;
-    openCurriculumModal("create");
+    opensecuenciacionModal("create");
   }
 
-  function renameCurriculum(){
-    if(!state.curriculumId) return;
-    openCurriculumModal("rename");
+  function renamesecuenciacion(){
+    if(!state.secuenciacionId) return;
+    opensecuenciacionModal("rename");
   }
 
-  async function deleteCurriculum(){
-    if(!state.curriculumId) return;
+  async function deletesecuenciacion(){
+    if(!state.secuenciacionId) return;
     if(isDemo){
-      state.curriculumId = null;
-      state.curriculumName = "";
+      state.secuenciacionId = null;
+      state.secuenciacionName = "";
+      clearDemoState();
+      syncPanelsVisibility();
       state.units = [];
       state.activeUnitId = null;
       renderUnits();
       setLeftLocked(true);
-      setCurriculumStatus("Demo: sin guardar");
-      renderCurriculumList([]);
-      syncCurriculumControls();
+      setsecuenciacionStatus("Demo: sin guardar");
+      rendersecuenciacionList([]);
+      syncsecuenciacionControls();
       return;
     }
-    var name = state.curriculumName || "este curriculum";
+    var name = state.secuenciacionName || "este secuenciación";
     if(!confirm("Seguro que quieres borrar " + name + "?")) return;
 
-    var url = "{% url 'generator:curriculum_plan_delete' 0 %}".replace("/0/", "/" + state.curriculumId + "/");
+    var url = "{% url 'generator:secuenciacion_plan_delete' 0 %}".replace("/0/", "/" + state.secuenciacionId + "/");
     var res = await fetch(url, {
       method: "POST",
       headers: { "X-CSRFToken": csrfToken() }
     });
     var data = await res.json();
     if(!data.ok){
-      setCurriculumStatus("No se pudo borrar");
+      setsecuenciacionStatus("No se pudo borrar");
       return;
     }
 
-    state.curriculumId = null;
-    state.curriculumName = "";
+    state.secuenciacionId = null;
+    state.secuenciacionName = "";
+    clearDemoState();
+    syncPanelsVisibility();
     state.units = [];
     state.activeUnitId = null;
     renderUnits();
     setLeftLocked(true);
     setStoredPlanId(state.subjectId, "");
-    setCurriculumStatus("Borrado");
-    syncCurriculumControls();
-    await loadCurriculums();
+    setsecuenciacionStatus("Borrado");
+    syncsecuenciacionControls();
+    await loadsecuenciacions();
   }
 
   qs("subjectSelect").onchange = async () => {
     state.subjectId = qs("subjectSelect").value;
     state.units = [];
     state.activeUnitId = null;
-    state.curriculumId = null;
-    state.curriculumName = "";
+    state.secuenciacionId = null;
+    state.secuenciacionName = "";
     relationsState = {};
+    syncPanelsVisibility();
+    if (isDemo) {
+      applyDemoState(readDemoState());
+    }
     setStoredSubjectId(state.subjectId);
     setStoredPlanId(state.subjectId, "");
     setLeftLocked(true);
     renderUnits();
-    setCurriculumStatus("");
-    syncCurriculumControls();
+    setsecuenciacionStatus("");
+    syncsecuenciacionControls();
     showAnalysisPane(true);
-    await loadCurriculums();
+    await loadsecuenciacions();
     await refreshRelationsErrors();
   };
 
   qs("createUnitBtn").onclick = createUnit;
-  qs("createCurriculumBtn").onclick = createCurriculum;
-  qs("deleteCurriculumBtn").onclick = deleteCurriculum;
-  qs("renameCurriculumBtn").onclick = renameCurriculum;
-  qs("analyzeBtn").onclick = analyzeCurriculum;
+  qs("createsecuenciacionBtn").onclick = createsecuenciacion;
+  qs("deletesecuenciacionBtn").onclick = deletesecuenciacion;
+  qs("renamesecuenciacionBtn").onclick = renamesecuenciacion;
+  qs("analyzeBtn").onclick = analyzesecuenciacion;
   qs("analysisClose").onclick = function(){ showAnalysisPane(false); };
 
   var modalMode = "create";
 
-  function openCurriculumModal(mode){
+  function opensecuenciacionModal(mode){
     modalMode = mode || "create";
-    var suggested = "Curriculum " + new Date().toISOString().slice(0,10);
-    var title = modalMode === "rename" ? "Cambiar nombre" : "Nuevo curriculum";
+    var suggested = "secuenciación " + new Date().toISOString().slice(0,10);
+    var title = modalMode === "rename" ? "Cambiar nombre" : "Nuevo secuenciación";
     var action = modalMode === "rename" ? "Guardar" : "Crear";
-    qs("curriculumModalTitle").textContent = title;
-    qs("curriculumModalCreate").textContent = action;
-    qs("curriculumModalName").value = modalMode === "rename" ? (state.curriculumName || suggested) : suggested;
-    qs("curriculumModal").style.display = "flex";
-    qs("curriculumModalName").focus();
+    qs("secuenciacionModalTitle").textContent = title;
+    qs("secuenciacionModalCreate").textContent = action;
+    qs("secuenciacionModalName").value = modalMode === "rename" ? (state.secuenciacionName || suggested) : suggested;
+    qs("secuenciacionModal").style.display = "flex";
+    qs("secuenciacionModalName").focus();
   }
 
-  async function analyzeCurriculum(){
+  async function analyzesecuenciacion(){
     if(!state.subjectId) return;
     showAnalysisPane(true);
 
@@ -828,7 +891,7 @@
       }))
     };
 
-    var res = await fetch("{% url 'generator:curriculum_analyze' %}", {
+    var res = await fetch("{% url 'generator:secuenciacion_analyze' %}", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -917,74 +980,78 @@
     qs("analysisBox").style.display = "block";
   }
 
-  function closeCurriculumModal(){
-    qs("curriculumModal").style.display = "none";
+  function closesecuenciacionModal(){
+    qs("secuenciacionModal").style.display = "none";
   }
 
-  async function createCurriculumFromModal(){
+  async function createsecuenciacionFromModal(){
     if(!state.subjectId) return;
-    var suggested = "Curriculum " + new Date().toISOString().slice(0,10);
-    var name = (qs("curriculumModalName").value || "").trim() || suggested;
-    closeCurriculumModal();
+    var suggested = "secuenciación " + new Date().toISOString().slice(0,10);
+    var name = (qs("secuenciacionModalName").value || "").trim() || suggested;
+    closesecuenciacionModal();
 
     if(isDemo){
       if(modalMode === "rename"){
-        if(!state.curriculumId) return;
-        state.curriculumName = name;
+        if(!state.secuenciacionId) return;
+        state.secuenciacionName = name;
         updateAnalysisTitle();
-        updateActiveCurriculumButtonName(name);
-        setCurriculumStatus("Demo: cambios locales");
-        renderCurriculumList([{ id: "demo", name: state.curriculumName }]);
-        syncCurriculumControls();
+        updateActivesecuenciacionButtonName(name);
+        writeDemoState();
+        setsecuenciacionStatus("Demo: cambios locales");
+        rendersecuenciacionList([{ id: "demo", name: state.secuenciacionName }]);
+        syncsecuenciacionControls();
         return;
       }
-      state.curriculumId = "demo";
-      state.curriculumName = name;
+      state.secuenciacionId = "demo";
+      syncPanelsVisibility();
+      state.secuenciacionName = name;
+      writeDemoState();
       updateAnalysisTitle();
       state.units = [];
       state.activeUnitId = null;
       renderUnits();
       setLeftLocked(true);
-      setCurriculumStatus("Demo: sin guardar");
-      renderCurriculumList([{ id: "demo", name: state.curriculumName }]);
-      syncCurriculumControls();
+      setsecuenciacionStatus("Demo: sin guardar");
+      rendersecuenciacionList([{ id: "demo", name: state.secuenciacionName }]);
+      syncsecuenciacionControls();
       return;
     }
 
     if(modalMode === "rename"){
-      if(!state.curriculumId) return;
-      state.curriculumName = name;
+      if(!state.secuenciacionId) return;
+      state.secuenciacionName = name;
       updateAnalysisTitle();
-      updateActiveCurriculumButtonName(name);
-      setCurriculumStatus("Renombrando...");
-      await saveCurriculum();
-      await loadCurriculums();
+      updateActivesecuenciacionButtonName(name);
+      setsecuenciacionStatus("Renombrando...");
+      await savesecuenciacion();
+      await loadsecuenciacions();
       return;
     }
 
-    state.curriculumId = null;
-    state.curriculumName = name;
+    state.secuenciacionId = null;
+    state.secuenciacionName = name;
+    syncPanelsVisibility();
     updateAnalysisTitle();
     state.units = [];
     state.activeUnitId = null;
     renderUnits();
     setLeftLocked(true);
     setStoredPlanId(state.subjectId, "");
-    setCurriculumStatus("Nuevo curriculum");
-    syncCurriculumControls();
-    await saveCurriculum();
-    await loadCurriculums();
+    setsecuenciacionStatus("Nuevo secuenciación");
+    syncsecuenciacionControls();
+    await savesecuenciacion();
+    await loadsecuenciacions();
   }
 
-  qs("curriculumModalCancel").onclick = closeCurriculumModal;
-  qs("curriculumModalCreate").onclick = createCurriculumFromModal;
-  qs("curriculumModal").querySelector(".modal-backdrop").onclick = closeCurriculumModal;
-  qs("curriculumModalName").addEventListener("keydown", function(e){
-    if(e.key === "Enter"){ createCurriculumFromModal(); }
-    if(e.key === "Escape"){ closeCurriculumModal(); }
+  qs("secuenciacionModalCancel").onclick = closesecuenciacionModal;
+  qs("secuenciacionModalCreate").onclick = createsecuenciacionFromModal;
+  qs("secuenciacionModal").querySelector(".modal-backdrop").onclick = closesecuenciacionModal;
+  qs("secuenciacionModalName").addEventListener("keydown", function(e){
+    if(e.key === "Enter"){ createsecuenciacionFromModal(); }
+    if(e.key === "Escape"){ closesecuenciacionModal(); }
   });
 
-  window.CurriculumUI = {
+  window.secuenciacionUI = {
     addFromButton(btn){
       var u = activeUnit();
       if(!u) return;
@@ -1004,17 +1071,23 @@
       refreshRelationsErrors();
       loadLeftCodes();
       scheduleSave();
-      if(qs("curriculumGrid").classList.contains("is-analysis")){
-        analyzeCurriculum();
+      if(qs("secuenciacionGrid").classList.contains("is-analysis")){
+        analyzesecuenciacion();
       }
     }
   };
 
   document.addEventListener("visibilitychange", function(){
     if(document.visibilityState === "hidden"){
-      saveCurriculum();
+      savesecuenciacion();
     } else {
       refreshRelationsErrors();
+    }
+  });
+
+  window.addEventListener("beforeunload", function(){
+    if (isDemo) {
+      writeDemoState();
     }
   });
 
@@ -1027,10 +1100,12 @@
     qs("subjectSelect").value = storedSubject;
     qs("subjectSelect").onchange();
   }
+  syncPanelsVisibility();
   showAnalysisPane(true);
-  syncCurriculumControls();
+  syncsecuenciacionControls();
   refreshRelationsErrors();
 })();
 </script>
 
 {% endblock %}
+

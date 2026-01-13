@@ -175,6 +175,9 @@
         setSelectedCodesToDom(state.codes);
       }
       subjectSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (subjectSelect.value) {
+      // Ensure initial server-selected subject triggers HTMX loads (demo/new sessions).
+      subjectSelect.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     subjectSelect.addEventListener('change', () => {

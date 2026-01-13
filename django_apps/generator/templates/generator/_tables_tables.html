@@ -37,7 +37,7 @@
 
 {% if table2_ssbb or table2_ce or table2_cev or table2_do or table2_selected %}
   {% if only_table2 %}
-    <div class="table-card{% if demo_mode %} demo-watermark{% endif %}" data-relations-scope="curriculum">
+    <div class="table-card{% if demo_mode %} demo-watermark{% endif %}" data-relations-scope="secuenciación">
       {% if selected_codes is not None %}
         {{ selected_codes|json_script:"selected-codes-json" }}
       {% else %}

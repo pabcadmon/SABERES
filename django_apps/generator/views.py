@@ -19,7 +19,7 @@ from core.engine.generate import generate_from_excel
 from django.contrib.auth.decorators import login_required
 from django_apps.accounts.permissions import require_subject_access
 
-from django_apps.generator.models import ExportJob, CurriculumPlan
+from django_apps.generator.models import ExportJob, secuenciacionPlan
 
 from django.core.files.base import ContentFile
 from django.utils import timezone
@@ -945,7 +945,7 @@ def _trim_relation_df(df, max_items: int):
         out[col] = out[col].apply(trim_cell)
     return out
 
-def curriculum_builder(request):
+def secuenciacion_builder(request):
     if request.user.is_authenticated:
         subjects = (
             Subject.objects
@@ -964,7 +964,7 @@ def curriculum_builder(request):
             demo_mode = True
     return render(
         request,
-        "curriculum/builder/builder.html",
+        "secuenciacion/builder/builder.html",
         {
             "subjects": subjects,
             "demo_mode": demo_mode,
@@ -975,7 +975,7 @@ def curriculum_builder(request):
 
 @login_required
 @require_GET
-def curriculum_plans(request):
+def secuenciacion_plans(request):
     subject_id = (request.GET.get("subject_id") or "").strip()
     if not subject_id:
         return JsonResponse({"ok": False, "error": "Falta subject_id."}, status=400)
@@ -988,7 +988,7 @@ def curriculum_plans(request):
         return JsonResponse({"ok": True, "items": []})
 
     items = []
-    for plan in CurriculumPlan.objects.filter(user=request.user, subject=subject).order_by("-updated_at"):
+    for plan in secuenciacionPlan.objects.filter(user=request.user, subject=subject).order_by("-updated_at"):
         items.append({
             "id": plan.id,
             "name": plan.name,
@@ -1000,11 +1000,11 @@ def curriculum_plans(request):
 
 @login_required
 @require_GET
-def curriculum_plan_detail(request, plan_id: int):
+def secuenciacion_plan_detail(request, plan_id: int):
     try:
-        plan = CurriculumPlan.objects.get(id=plan_id, user=request.user)
-    except CurriculumPlan.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "Curriculum no encontrado."}, status=404)
+        plan = secuenciacionPlan.objects.get(id=plan_id, user=request.user)
+    except secuenciacionPlan.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "secuenciacion no encontrado."}, status=404)
 
     return JsonResponse({
         "ok": True,
@@ -1019,14 +1019,14 @@ def curriculum_plan_detail(request, plan_id: int):
 
 @login_required
 @require_POST
-def curriculum_plan_save(request):
+def secuenciacion_plan_save(request):
     try:
         payload = json.loads(request.body.decode("utf-8"))
     except Exception:
         return JsonResponse({"ok": False, "error": "JSON inválido."}, status=400)
 
     subject_id = payload.get("subject_id")
-    name = (payload.get("name") or "").strip() or "Curriculum"
+    name = (payload.get("name") or "").strip() or "secuenciacion"
     units = payload.get("units") or []
     plan_id = payload.get("id")
 
@@ -1047,15 +1047,15 @@ def curriculum_plan_save(request):
 
     if plan_id:
         try:
-            plan = CurriculumPlan.objects.get(id=plan_id, user=request.user)
-        except CurriculumPlan.DoesNotExist:
-            return JsonResponse({"ok": False, "error": "Curriculum no encontrado."}, status=404)
+            plan = secuenciacionPlan.objects.get(id=plan_id, user=request.user)
+        except secuenciacionPlan.DoesNotExist:
+            return JsonResponse({"ok": False, "error": "secuenciacion no encontrado."}, status=404)
         plan.name = name
         plan.units = units
         plan.subject = subject
         plan.save(update_fields=["name", "units", "subject", "updated_at"])
     else:
-        plan = CurriculumPlan.objects.create(
+        plan = secuenciacionPlan.objects.create(
             user=request.user,
             subject=subject,
             name=name,
@@ -1067,18 +1067,18 @@ def curriculum_plan_save(request):
 
 @login_required
 @require_POST
-def curriculum_plan_delete(request, plan_id: int):
+def secuenciacion_plan_delete(request, plan_id: int):
     try:
-        plan = CurriculumPlan.objects.get(id=plan_id, user=request.user)
-    except CurriculumPlan.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "Curriculum no encontrado."}, status=404)
+        plan = secuenciacionPlan.objects.get(id=plan_id, user=request.user)
+    except secuenciacionPlan.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "secuenciacion no encontrado."}, status=404)
 
     plan.delete()
     return JsonResponse({"ok": True})
 
 
 @require_POST
-def curriculum_analyze(request):
+def secuenciacion_analyze(request):
     """
     Espera JSON:
     {
@@ -1192,7 +1192,7 @@ def curriculum_analyze(request):
 
 @login_required
 @require_GET
-def curriculum_codes(request):
+def secuenciacion_codes(request):
     subject_id = (request.GET.get("subject_id") or "").strip()
     if not subject_id:
         return JsonResponse({"ok": False, "error": "Falta subject_id."}, status=400)
@@ -1222,3 +1222,4 @@ def curriculum_codes(request):
             cev.append(item)
 
     return JsonResponse({"ok": True, "ssbb": ssbb, "cev": cev})
+
