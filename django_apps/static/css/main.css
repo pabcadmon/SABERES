@@ -519,6 +519,11 @@ select{ max-width: 420px; }
 }
 
 @media (max-width: 980px){
+  .tables-shell{
+    height: auto;
+    overflow: visible;
+  }
+
   .tables-layout{
     grid-template-columns: 1fr;
     height: auto;

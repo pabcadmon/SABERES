@@ -1,3 +1,36 @@
+<style>
+  @media (max-width: 720px) {
+    .table-header-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .table-actions {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .table-actions .btn-small {
+      flex: 1 1 auto;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .nice-table {
+      min-width: 640px;
+    }
+
+    .dropdown-section select {
+      width: 100%;
+    }
+  }
+</style>
+
 {% if error %}
   <div class="table-card{% if demo_mode %} demo-watermark{% endif %}">
     <h3>Error</h3>
@@ -7,9 +40,9 @@
 
 {% if table1 and not only_table2 %}
   <div class="table-card{% if demo_mode %} demo-watermark{% endif %}">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="table-header-row" style="display: flex; justify-content: space-between; align-items: center;">
       <h3 style="margin: 0;">Relaciones por tipo</h3>
-      <div style="display: flex; gap: 0.5rem;">
+      <div class="table-actions" style="display: flex; gap: 0.5rem;">
         <button onclick="copyTableToClipboard('table1')" class="btn-small">📋 Copiar</button>
         <button onclick="exportTableToCSV('table1', 'relaciones-por-tipo')" class="btn-small">📥 Exportar</button>
       </div>
@@ -43,7 +76,7 @@
       {% else %}
         <script id="selected-codes-json" type="application/json">[]</script>
       {% endif %}
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="table-header-row" style="display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0;">Relaciones individuales</h3>
       </div>
       <div class="table-scroll">
@@ -72,9 +105,9 @@
       {% else %}
         <script id="selected-codes-json" type="application/json">[]</script>
       {% endif %}
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="table-header-row" style="display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0;">Relaciones individuales</h3>
-        <div style="display: flex; gap: 0.5rem;">
+        <div class="table-actions" style="display: flex; gap: 0.5rem;">
           <button onclick="copyTableToClipboard('current-relations-table')" class="btn-small">Copiar</button>
           <button onclick="exportTableToCSV('current-relations-table', 'relaciones-individuales')" class="btn-small">Exportar</button>
         </div>
@@ -272,9 +305,9 @@
 
 {% if table3 and not only_table2 %}
   <div class="table-card{% if demo_mode %} demo-watermark{% endif %}">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="table-header-row" style="display: flex; justify-content: space-between; align-items: center;">
       <h3 style="margin: 0;">Descripciones de elementos mostrados</h3>
-      <div style="display: flex; gap: 0.5rem;">
+      <div class="table-actions" style="display: flex; gap: 0.5rem;">
         <button onclick="copyTableToClipboard('table3')" class="btn-small">📋 Copiar</button>
         <button onclick="exportTableToCSV('table3', 'descripciones')" class="btn-small">📥 Exportar</button>
       </div>
